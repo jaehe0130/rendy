@@ -5,6 +5,7 @@ import { planOf, type PlanKey } from './data'
 // 결과는 예비 — 최종 판정은 회수 후 운영자. 체험 화면(/try)과 내 렌탈 반납 팝업에서 같이 씀
 export const VISION_URL = (import.meta.env.VITE_VISION_URL as string | undefined) || 'https://seongwon20--rendy-vision-web.us-east.modal.run'
 // 시연용 상품별 예시: 출고 사진(렌디가 보내기 전에 찍어 둔 앞면) ↔ 같은 기기의 반납 사진(긁힘) 짝. 키 = 상품 id (data.ts)
+// 출고 사진 = 상품 사진(원본)을 기기 부분만 자른 것. 긁힘 A ↔ 상품 사진 1, B ↔ 2, C ↔ 3
 // 예시 반납 사진 A를 누르면 출고 사진도 A의 짝으로 바뀜. 실제 모델이 흠집을 찾는 짝만 넣음 (2026-11-06 확인)
 interface Pair { key: string; name: string; before: string }
 interface Kit { name: string; pairs: Pair[] }
@@ -13,7 +14,7 @@ const pairs = (id: string, list: [number, number][]): Pair[] =>
 export const KITS: Record<string, Kit> = {
   'dehumidifier-10': { name: '제습기 10L', pairs: pairs('dehumidifier-10', [[1, 1], [2, 2], [3, 3]]) },
   'dehumidifier-16': { name: '제습기 16L', pairs: pairs('dehumidifier-16', [[3, 1], [2, 3]]) },
-  humidifier: { name: '가습기', pairs: [...pairs('humidifier', [[3, 3]]), { key: 'hum-after-scratch', name: '긁힘 B', before: '/samples/hum-before.webp' }] },
+  humidifier: { name: '가습기', pairs: pairs('humidifier', [[3, 3]]) },
   'mini-dryer': { name: '미니 건조기', pairs: pairs('mini-dryer', [[1, 1], [3, 3]]) },
   foodwaste: { name: '음식물 처리기', pairs: pairs('foodwaste', [[2, 2], [3, 3]]) },
 }
