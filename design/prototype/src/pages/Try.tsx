@@ -11,7 +11,7 @@ export default function Try() {
         <p className="muted">렌디는 보내기 전에 기기를 찍어 둬요. 반납할 때 같은 각도로 찍으면 AI가 새로 생긴 흠집만 찾아요.</p>
       </div>
       <div className="panel try-card stack gap-16">
-        <ReturnCompare plan="safe" kits={['hum', 'dehum']} samples actions={() => (
+        <ReturnCompare plan="safe" kits={['humidifier', 'dehumidifier-10']} actions={() => (
           <div className="row gap-8 wrap-row">
             <Link to="/admin/judge?demo" className="btn">운영자 최종 판정 보기</Link>
             <Link to="/my?demo" className="btn line">내 렌탈에서 반납해 보기</Link>

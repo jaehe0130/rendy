@@ -120,7 +120,7 @@ export default function My() {
               <div className="field"><label>회수 날짜</label><div className="chips">{['다음 배송일 (화)', '그다음 (금)'].map((x, i) => <span key={x} className={`chip ${i === 0 ? 'on' : ''}`}>{x}</span>)}</div></div>
               <b style={{ fontSize: 14 }}>반납 사진 · AI가 출고 사진과 비교해요</b>
               {/* 실제 흠집 모델로 출고 사진(렌디 촬영) ↔ 반납 사진 비교 → 예비 판정 후 반납 확정 */}
-              <ReturnCompare plan={ret.plan} actions={() => (
+              <ReturnCompare key={ret.id} plan={ret.plan} kits={[ret.productId]} actions={() => (
                 <div className="row gap-8"><button className="btn line" onClick={() => { closeRet(); flash('이의 신청을 접수했어요. 3영업일 안에 다시 판정해요') }}>이의 신청</button><button className="btn" style={{ flex: 1 }} onClick={() => { requestReturn(ret.id); closeRet(); flash('반납 신청 완료. 회수 후 운영자가 최종 판정해요') }}>반납 확정</button></div>
               )} />
             </div>
