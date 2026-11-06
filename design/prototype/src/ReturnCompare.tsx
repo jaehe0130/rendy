@@ -43,14 +43,21 @@ export function ReturnCompare({ plan, actions }: { plan?: PlanKey; actions?: (r:
 
   // 들어오자마자 AI 서버를 깨워 둠 (쉬고 있으면 처음 응답이 느림)
   useEffect(() => { fetch(`${VISION_URL}/healthz`).catch(() => {}) }, [])
+  // ?sample=after-tape 이면 그 예시 반납 사진으로 바로 비교 (시안 캡처 · 시연용)
+  useEffect(() => {
+    const k = new URLSearchParams(location.search).get('sample')
+    if (!k || !AFTERS.some((x) => x.key === k)) return
+    ;(async () => { const a = await shrink(await (await fetch(`/samples/${k}.webp`)).blob()); setAfter(a); setPick(k); run(a) })()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const setA = (v: string, key = '') => { setAfter(v); setPick(key); setRes(null); setState('idle') }
-  const run = async () => {
+  const run = async (a = after) => {
     setState('busy'); setSlow(false); setErr(''); setRes(null)
     const t = setTimeout(() => setSlow(true), 8000)
     try {
       const before = await shrink(await (await fetch(OUTBOUND_PHOTO)).blob())
-      const r = await fetch(`${VISION_URL}/v1/demo/compare`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ before, after, widthCm: 30 }) })
+      const r = await fetch(`${VISION_URL}/v1/demo/compare`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ before, after: a, widthCm: 30 }) })
       if (!r.ok) throw new Error(`서버 응답 ${r.status}`)
       setRes(await r.json()); setState('done')
       setTimeout(() => resultRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 50)
@@ -91,7 +98,7 @@ export function ReturnCompare({ plan, actions }: { plan?: PlanKey; actions?: (r:
       </div>
 
       {state !== 'done' && (
-        <button className="btn block" disabled={!after || state === 'busy'} onClick={run}>{state === 'busy' ? (slow ? 'AI 서버 깨우는 중… 최대 1분' : 'AI가 출고 사진과 비교하는 중…') : 'AI로 출고 사진과 비교하기'}</button>
+        <button className="btn block" disabled={!after || state === 'busy'} onClick={() => run()}>{state === 'busy' ? (slow ? 'AI 서버 깨우는 중… 최대 1분' : 'AI가 출고 사진과 비교하는 중…') : 'AI로 출고 사진과 비교하기'}</button>
       )}
       {state === 'error' && <span className="muted" style={{ fontSize: 13 }}>AI 서버에 연결하지 못했어요 ({err}). 잠시 뒤 다시 눌러 주세요.</span>}
 
