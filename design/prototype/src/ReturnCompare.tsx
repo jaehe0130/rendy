@@ -4,20 +4,22 @@ import { planOf, type PlanKey } from './data'
 // 반납 AI 예비 판정: 렌디가 출고 때 찍은 사진(고정) ↔ 사용자가 반납할 때 찍은 사진을 실제 흠집 모델(Modal)로 비교.
 // 결과는 예비 — 최종 판정은 회수 후 운영자. 체험 화면(/try)과 내 렌탈 반납 팝업에서 같이 씀
 export const VISION_URL = (import.meta.env.VITE_VISION_URL as string | undefined) || 'https://seongwon20--rendy-vision-web.us-east.modal.run'
-// 시연용 상품별 출고 사진(렌디가 보내기 전에 찍어 둔 앞면)과 예시 반납 사진. 키 = 상품 id (data.ts)
-// 사진이 아직 없는 상품: 출고 사진은 상품 사진으로 보여 주고 예시 줄은 숨김 → 사진 받으면 여기에 한 줄 추가
-interface Kit { name: string; before: string; afters: { key: string; name: string }[] }
+// 시연용 상품별 예시: 출고 사진(렌디가 보내기 전에 찍어 둔 앞면) ↔ 같은 기기의 반납 사진(긁힘) 짝. 키 = 상품 id (data.ts)
+// 예시 반납 사진 A를 누르면 출고 사진도 A의 짝으로 바뀜. 실제 모델이 흠집을 찾는 짝만 넣음 (2026-11-06 확인)
+interface Pair { key: string; name: string; before: string }
+interface Kit { name: string; pairs: Pair[] }
+const pairs = (id: string, list: [number, number][]): Pair[] =>
+  list.map(([o, s], i) => ({ key: `${id}-s${s}`, name: `긁힘 ${'ABC'[i]}`, before: `/samples/${id}-o${o}.webp` }))
 export const KITS: Record<string, Kit> = {
-  humidifier: { name: '가습기', before: '/samples/hum-before.webp', afters: [{ key: 'hum-after-scratch', name: '긁힘' }] },
-  'dehumidifier-10': { name: '제습기', before: '/samples/before.webp', afters: [
-    { key: 'after-scratch', name: '긁힘' },
-    { key: 'after-tape', name: '테이프' },
-    { key: 'after-small', name: '작은 긁힘' },
-    { key: 'after-same', name: '변화 없음' },
-  ] },
+  'dehumidifier-10': { name: '제습기 10L', pairs: pairs('dehumidifier-10', [[1, 1], [2, 2], [3, 3]]) },
+  'dehumidifier-16': { name: '제습기 16L', pairs: pairs('dehumidifier-16', [[3, 1], [2, 3]]) },
+  humidifier: { name: '가습기', pairs: [...pairs('humidifier', [[3, 3]]), { key: 'hum-after-scratch', name: '긁힘 B', before: '/samples/hum-before.webp' }] },
+  'mini-dryer': { name: '미니 건조기', pairs: pairs('mini-dryer', [[1, 1], [3, 3]]) },
+  foodwaste: { name: '음식물 처리기', pairs: pairs('foodwaste', [[2, 2], [3, 3]]) },
 }
-const kitOf = (id: string): Kit => KITS[id] ?? { name: '', before: `/products/${id}-1.webp`, afters: [] }
-const kitOfSample = (k: string) => Object.keys(KITS).find((x) => KITS[x].afters.some((a) => a.key === k))
+// 예시가 없는 상품: 출고 사진 자리에 상품 사진, 예시 줄은 숨김
+const kitOf = (id: string): Kit => KITS[id] ?? { name: '', pairs: [] }
+const firstBefore = (id: string) => kitOf(id).pairs[0]?.before ?? `/products/${id}-1.webp`
 
 interface Finding { bbox: number[]; lengthMm: number; confidence: number; suggestedClass: 'WEAR' | 'FAULT'; needsReview: boolean }
 export interface VisionRes { aligned: boolean; mismatch?: boolean; findings: Finding[]; image: string | null; ms: number }
@@ -41,8 +43,8 @@ function shrink(file: Blob): Promise<string> {
 // 예시 반납 사진 줄: 심사위원은 반납할 실물이 없으니 체험 화면 · 반납 팝업 둘 다 그 상품 사진을 보여 줌
 export function ReturnCompare({ plan, actions, kits = ['dehumidifier-10'] }: { plan?: PlanKey; actions?: (r: VisionRes, wear: boolean) => ReactNode; kits?: string[] }) {
   const [kit, setKit] = useState(kits[0])
-  const outbound = kitOf(kit).before
-  const afters = kitOf(kit).afters
+  const [outbound, setOutbound] = useState(firstBefore(kits[0]))
+  const samples = kitOf(kit).pairs
   const [after, setAfter] = useState('')
   const [pick, setPick] = useState('')
   const [state, setState] = useState<'idle' | 'busy' | 'done' | 'error'>('idle')
@@ -53,18 +55,21 @@ export function ReturnCompare({ plan, actions, kits = ['dehumidifier-10'] }: { p
 
   // 들어오자마자 AI 서버를 깨워 둠 (쉬고 있으면 처음 응답이 느림)
   useEffect(() => { fetch(`${VISION_URL}/healthz`).catch(() => {}) }, [])
-  // ?sample=after-tape 이면 그 예시 반납 사진으로 바로 비교 (시안 캡처 · 시연용)
+  // ?sample=dehumidifier-10-s2 이면 그 예시 반납 사진으로 바로 비교 (시안 캡처 · 시연용)
   useEffect(() => {
     const k = new URLSearchParams(location.search).get('sample')
-    const kk = k ? kitOfSample(k) : undefined
-    if (!k || !kk || !kits.includes(kk)) return
-    setKit(kk)
-    ;(async () => { const a = await shrink(await (await fetch(`/samples/${k}.webp`)).blob()); setAfter(a); setPick(k); run(a, KITS[kk].before) })()
+    const kk = kits.find((x) => kitOf(x).pairs.some((p) => p.key === k))
+    const p = kk && kitOf(kk).pairs.find((x) => x.key === k)
+    if (!kk || !p) return
+    setKit(kk); setOutbound(p.before)
+    ;(async () => { const a = await shrink(await (await fetch(`/samples/${p.key}.webp`)).blob()); setAfter(a); setPick(p.key); run(a, p.before) })()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const setA = (v: string, key = '') => { setAfter(v); setPick(key); setRes(null); setState('idle') }
-  const pickKit = (k: string) => { setKit(k); setA('') }
+  const pickKit = (k: string) => { setKit(k); setOutbound(firstBefore(k)); setA('') }
+  // 예시 반납 사진을 고르면 출고 사진도 그 기기의 출고 사진으로
+  const pickSample = async (p: Pair) => { setOutbound(p.before); setA(await shrink(await (await fetch(`/samples/${p.key}.webp`)).blob()), p.key) }
   const run = async (a = after, before0 = outbound) => {
     setState('busy'); setSlow(false); setErr(''); setRes(null)
     const t = setTimeout(() => setSlow(true), 8000)
@@ -102,11 +107,11 @@ export function ReturnCompare({ plan, actions, kits = ['dehumidifier-10'] }: { p
         </figure>
       </div>
 
-      {afters.length > 0 && <div className="rc-samples">
+      {samples.length > 0 && <div className="rc-samples">
         <span>비교할 가전이 없으시면 이 사진을 사용해 주세요</span>
         <div className="row gap-8 wrap-row">
-          {afters.map((x) => (
-            <button key={x.key} className={`try-thumb ${pick === x.key ? 'on' : ''}`} onClick={async () => setA(await shrink(await (await fetch(`/samples/${x.key}.webp`)).blob()), x.key)}>
+          {samples.map((x) => (
+            <button key={x.key} className={`try-thumb ${pick === x.key ? 'on' : ''}`} onClick={() => pickSample(x)}>
               <img src={`/samples/${x.key}.webp`} alt={`예시 반납 사진 · ${x.name}`} /><span>{x.name}</span>
             </button>
           ))}
