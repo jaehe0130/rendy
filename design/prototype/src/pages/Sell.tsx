@@ -57,7 +57,7 @@ export default function Sell() {
         <div className="split">
           <div className="panel stack gap-16">
             <div className="field"><label htmlFor="it">어떤 가전인가요?</label><select id="it" className="input" value={pid} onChange={(e) => { setPid(e.target.value); resetForm() }}>{PRODUCTS.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}</select></div>
-            <div className="field"><label>쓴 기간</label><div className="chips">{['1년 이하', '2년', '3년', '4년 이상'].map((x, i) => <button key={x} className={`chip ${years === i + 1 ? 'on' : ''}`} onClick={() => { setYears(i + 1); setQuote('idle') }}>{x}</button>)}</div></div>
+            <div className="field"><label>구매 후 경과 기간</label><div className="chips">{['1년 이하', '1년~2년', '2년~3년'].map((x, i) => <button key={x} className={`chip ${years === i + 1 ? 'on' : ''}`} onClick={() => { setYears(i + 1); setQuote('idle') }}>{x}</button>)}</div></div>
             <div className="field"><label>상태</label><div className="chips">{['거의 새것', '생활 흠집', '눈에 띄는 흠집'].map((x, i) => <button key={x} className={`chip ${cond === i ? 'on' : ''}`} onClick={() => { setCond(i); setQuote('idle') }}>{x}</button>)}</div></div>
             <div className="stack gap-4"><b style={{ fontSize: 14 }}>사진 3장 (정면 · 옆면 · 작동 화면)</b><span className="faint" style={{ fontSize: 12 }}>운영자가 수거 전에 매입 조건을 확인하고, 수거하는 날 같은 상태인지 비교해요.</span></div>
             <div className="grid g3" style={{ gap: 8, gridTemplateColumns: 'repeat(3,1fr)' }}>{['정면', '옆면', '작동 화면'].map((x) => <Upload key={pid + x} label={x} onFile={() => setPhotos((n) => n + 1)} />)}</div>
@@ -74,7 +74,7 @@ export default function Sell() {
                 <span className="num" style={{ fontSize: 40, color: 'var(--primary)' }}>{won(lo)} ~ {won(hi)}</span>
                 <div className="kv"><span>새 제품가</span><b>{won(p.newPrice)}</b></div>
                 <div className="kv"><span>매입률</span><b>{Math.round(rate * 100)}%{member ? ' (렌디 이용자 +5%p)' : ''}</b></div>
-                <div className="kv"><span>연식 · 상태 반영</span><b>{['1년 이하', '2년', '3년', '4년 이상'][years - 1]} · {['거의 새것', '생활 흠집', '눈에 띄는 흠집'][cond]}</b></div>
+                <div className="kv"><span>연식 · 상태 반영</span><b>{['1년 이하', '1년~2년', '2년~3년'][years - 1]} · {['거의 새것', '생활 흠집', '눈에 띄는 흠집'][cond]}</b></div>
                 <div className="kv"><span>수거 · 입금</span><b>다음 배송일 문 앞 무료 수거 · 검수 끝나면 바로 입금</b></div>
                 <div className="kv"><span>최종가</span><b>수거 후 운영자 검수(작동 · 전기 안전 · 흠집)로 확정</b></div>
                 <span className="faint" style={{ fontSize: 12 }}>검수 결과는 사진과 함께 보여드려요. 범위를 벗어나면 먼저 동의를 받고, 원하지 않으면 무료로 돌려드려요.</span>
@@ -82,7 +82,7 @@ export default function Sell() {
                 <button className="btn block" onClick={() => { if (needLogin()) return; addSell({ kind: '팔기', item: p.name, amount: `${won(lo)} ~ ${won(hi)}`, status: '수거 예약 · 검수 후 확정' }); done('수거 예약 완료. 검수 끝나면 바로 입금돼요') }}>수거 신청하기</button>
               </>
             ) : (
-              <span className="faint" style={{ fontSize: 14 }}>쓴 기간 · 상태를 고르고 사진 3장을 올리면 예상 매입가를 알려드려요.</span>
+              <span className="faint" style={{ fontSize: 14 }}>구매 후 경과 기간 · 상태를 고르고 사진 3장을 올리면 예상 매입가를 알려드려요.</span>
             )}
           </div>
         </div>

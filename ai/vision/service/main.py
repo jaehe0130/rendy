@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import List, Literal, Optional
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 Side = Literal["FRONT", "LEFT", "RIGHT", "BACK", "TOP", "OPERATING"]
@@ -65,6 +66,8 @@ def classify(length_mm: float) -> tuple[str, bool]:
 
 
 app = FastAPI(title="Rendy Vision", version="0.1.0")
+# 체험 화면(Vercel)에서 바로 부를 수 있게. 운영 때는 VISION_CORS에 웹 주소만 적기
+app.add_middleware(CORSMiddleware, allow_origins=os.getenv("VISION_CORS", "*").split(","), allow_methods=["*"], allow_headers=["*"])
 
 
 @app.get("/healthz")
@@ -121,3 +124,26 @@ def compare(req: CompareRequest) -> Result:
     worst = max((f.lengthMm for f in findings), default=0.0)
     delta = 0 if not findings else (-4 if worst <= POLICY["wearThresholdMm"] else -15)
     return Result(findings=findings, retakeHints=hints, conditionScoreDelta=delta)
+
+
+class DemoRequest(BaseModel):
+    before: str            # data URI (전 사진)
+    after: str             # data URI (후 사진: 테이프·스티커를 붙이거나 흠집을 낸 뒤)
+    widthCm: float = 30.0  # 사진 가로 전체의 대략적인 실제 폭 (길이 추정용)
+
+
+@app.post("/v1/demo/compare")
+def demo_compare(req: DemoRequest) -> dict:
+    """심사위원 체험용 (계약 밖): 전/후 사진 비교 → 새로 생긴 부분 후보 + 표시 이미지. 결과는 예비."""
+    if MOCK:
+        return {"aligned": True, "findings": [], "image": None, "mock": True}
+    import time
+    from . import patchcore as pc
+
+    t0 = time.time()
+    out = pc.demo_compare(pc.load_image(req.before), pc.load_image(req.after), req.widthCm * 10)
+    for f in out["findings"]:
+        f["suggestedClass"], f["needsReview"] = classify(f["lengthMm"])
+    out.update(ms=int((time.time() - t0) * 1000), modelVersion=MODEL_VERSION,
+               wearThresholdMm=POLICY["wearThresholdMm"], reviewMarginMm=POLICY["reviewMarginMm"])
+    return out
