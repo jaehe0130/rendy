@@ -248,6 +248,9 @@ export function SectionHead({ en, title, right }: { en: string; title: string; r
 }
 
 export function FloatingAI() {
+  // 3D 보기 화면에서는 뷰어 도구 막대를 가려서 숨김
+  const { pathname } = useLocation()
+  if (pathname.endsWith('/3d')) return null
   return <Link to="/ai" className="floating-ai"><i />AI 살림 상담</Link>
 }
 

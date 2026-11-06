@@ -276,7 +276,7 @@ export default function Viewer3D() {
               <small>가로 {m3.size.w} · 깊이 {m3.size.d} · 높이 {m3.size.h}cm{room ? ` · ${room}` : ''}</small>
             </div>
           )}
-          <p className="v3d-note">반납할 때 AI가 이 3D 기록과 반납 사진을 비교해 새로 생긴 흠집만 찾아요.</p>
+          <p className="v3d-note">반납할 때 AI가 출고 사진과 반납 사진을 비교해 새로 생긴 흠집만 찾아요. 여기 있는 기존 흠집은 책임에서 빠져요.</p>
           <div className="v3d-btns">
             <button className="v3d-btn" onClick={() => rent(true)} disabled={p.stock === 0}>{p.stock === 0 ? '지금은 모두 대여 중' : '이 기기로 빌리기'}</button>
             <button className="v3d-btn line" onClick={() => rent(false)} disabled={p.stock === 0}>꾸러미에 담기</button>
