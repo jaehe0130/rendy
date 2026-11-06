@@ -100,4 +100,24 @@ def compare(req: CompareRequest) -> Result:
                               suggestedClass=cls, confidence=conf, needsReview=review)],
             conditionScoreDelta=-4 if cls == "WEAR" else -15,
         )
-    raise NotImplementedError("모델 연결 전: VISION_MOCK=1 로 실행")
+    # 실제 모델 (VISION_MOCK=0): 같은 면끼리 기준 사진 대비 새 손상 후보. 결과는 예비 — 최종은 운영자
+    from . import patchcore as pc  # torch 등 무거운 의존성은 이때만 불러옴 (requirements-model.txt)
+
+    findings: List[Finding] = []
+    hints: List[dict] = []
+    for cur in req.current:
+        base = [p for p in req.baseline if p.side == cur.side]
+        if not base:
+            hints.append({"side": cur.side, "reason": "NO_BASELINE"})
+            continue
+        raws, aligned = pc.find_new_damage([pc.load_image(p.url) for p in base], pc.load_image(cur.url))
+        if not aligned:
+            hints.append({"side": cur.side, "reason": "ALIGN_FAILED"})
+        for r in raws:
+            cls, review = classify(r.length_mm)
+            conf = pc.confidence(r.peak_ratio, aligned)
+            findings.append(Finding(side=cur.side, bbox=r.bbox, lengthMm=r.length_mm, isNew=True,
+                                    suggestedClass=cls, confidence=conf, needsReview=review or conf < 0.5))
+    worst = max((f.lengthMm for f in findings), default=0.0)
+    delta = 0 if not findings else (-4 if worst <= POLICY["wearThresholdMm"] else -15)
+    return Result(findings=findings, retakeHints=hints, conditionScoreDelta=delta)
