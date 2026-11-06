@@ -1,0 +1,13 @@
+name: ai
+on:
+  pull_request:
+    paths: ["ai/**"]
+jobs:
+  mock-service:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: pip install -r ai/vision/requirements.txt
+      - run: cd ai/vision && VISION_MOCK=1 python -c "from service.main import app; print('ok')"

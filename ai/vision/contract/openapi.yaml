@@ -1,0 +1,105 @@
+openapi: 3.0.3
+info:
+  title: Rendy Vision Service
+  version: 0.1.0
+  description: |
+    api ↔ ai/vision 계약. 같은 면(side)끼리 기준 사진과 현재 사진을 비교해 '새로 생긴' 흠을 찾는다.
+    결과는 예비 판정이며 최종은 운영자(8-5).
+paths:
+  /v1/detect:
+    post:
+      summary: 기준 사진에서 기존 흠집 찾기 (8-1 출고 검사)
+      operationId: detect
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [photos]
+              properties:
+                deviceCode: { type: string }
+                photos:
+                  type: array
+                  items: { $ref: "#/components/schemas/Photo" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Result" }
+  /v1/compare:
+    post:
+      summary: 기준(출고·받은 날) vs 현재(받은 날·반납) 비교 (8-2, 8-3)
+      operationId: compare
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [baseline, current]
+              properties:
+                deviceCode: { type: string }
+                baseline:
+                  type: array
+                  items: { $ref: "#/components/schemas/Photo" }
+                current:
+                  type: array
+                  items: { $ref: "#/components/schemas/Photo" }
+                knownFindings:
+                  type: array
+                  description: 이미 기록된 기존 흠 (중복 표시 방지)
+                  items: { $ref: "#/components/schemas/Finding" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Result" }
+  /healthz:
+    get:
+      summary: 상태 확인
+      operationId: health
+      responses:
+        "200": { description: OK }
+components:
+  schemas:
+    Side:
+      type: string
+      enum: [FRONT, LEFT, RIGHT, BACK, TOP, OPERATING]
+    Photo:
+      type: object
+      required: [side, url]
+      properties:
+        side: { $ref: "#/components/schemas/Side" }
+        url: { type: string }
+    Finding:
+      type: object
+      properties:
+        side: { $ref: "#/components/schemas/Side" }
+        bbox:
+          type: array
+          description: "[x, y, w, h] 0~1"
+          items: { type: number }
+        lengthMm: { type: number }
+        isNew: { type: boolean }
+        suggestedClass: { type: string, enum: [NONE, WEAR, FAULT] }
+        confidence: { type: number }
+        needsReview: { type: boolean }
+    Result:
+      type: object
+      properties:
+        findings:
+          type: array
+          items: { $ref: "#/components/schemas/Finding" }
+        retakeHints:
+          type: array
+          description: 반사광·각도 불일치 등 다시 찍기 안내
+          items:
+            type: object
+            properties:
+              side: { $ref: "#/components/schemas/Side" }
+              reason: { type: string }
+        conditionScoreDelta: { type: integer }
+        modelVersion: { type: string }

@@ -1,0 +1,26 @@
+node_modules/
+.next/
+dist/
+build/
+coverage/
+.env
+.env.*
+!.env.example
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+uploads/
+
+# Python / AI
+__pycache__/
+*.pyc
+.venv/
+.ipynb_checkpoints/
+ai/vision/models/*
+!ai/vision/models/.gitkeep
+ai/vision/data/*
+!ai/vision/data/README.md
+*.pt
+*.onnx
+*.ckpt

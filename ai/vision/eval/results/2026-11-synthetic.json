@@ -1,0 +1,26 @@
+{
+  "dataset": {
+    "type": "synthetic",
+    "images": 150,
+    "normal": 40
+  },
+  "metrics": {
+    "image_auroc": 0.98,
+    "pixel_auroc": 0.99,
+    "false_positive_normal": {
+      "count": 0,
+      "of": 40
+    },
+    "length_mae_mm": 15,
+    "threshold_20mm_accuracy": 0.57
+  },
+  "real_photos": {
+    "images": 3,
+    "notes": [
+      "뚜렷한 흠집 탐지",
+      "옅은 긁힘 누락",
+      "테두리·반사광 오탐",
+      "기준 사진 없음이 원인"
+    ]
+  }
+}

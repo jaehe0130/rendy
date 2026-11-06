@@ -1,0 +1,20 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: rendy
+      POSTGRES_PASSWORD: rendy
+      POSTGRES_DB: rendy
+    ports:
+      - "5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+  vision:
+    build: ./ai/vision
+    environment:
+      VISION_MOCK: "1"
+    ports:
+      - "8001:8001"
+    profiles: ["ai"]
+volumes:
+  db-data:

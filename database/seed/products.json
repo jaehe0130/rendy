@@ -1,0 +1,47 @@
+[
+  {
+    "name": "제습기 10L",
+    "category": "SEASONAL",
+    "newPriceKrw": 377000,
+    "prices": {
+      "STANDARD": 15000,
+      "VALUE": 10000
+    }
+  },
+  {
+    "name": "제습기 16L",
+    "category": "SEASONAL",
+    "newPriceKrw": 459000,
+    "prices": {
+      "STANDARD": 19000,
+      "VALUE": 14000
+    }
+  },
+  {
+    "name": "미니 건조기",
+    "category": "LAUNDRY",
+    "newPriceKrw": 329000,
+    "prices": {
+      "STANDARD": 20000,
+      "VALUE": 15000
+    }
+  },
+  {
+    "name": "가습기 3L",
+    "category": "SEASONAL",
+    "newPriceKrw": 129000,
+    "prices": {
+      "STANDARD": 15000,
+      "VALUE": 10000
+    }
+  },
+  {
+    "name": "음식물 처리기",
+    "category": "KITCHEN",
+    "newPriceKrw": 399000,
+    "prices": {
+      "STANDARD": 11000,
+      "VALUE": 6000
+    }
+  }
+]

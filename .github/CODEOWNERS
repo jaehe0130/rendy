@@ -1,0 +1,12 @@
+# 깃허브 아이디로 바꿔 주세요. PR이 해당 영역을 건드리면 담당자가 자동 리뷰어로 지정됩니다.
+*                         @LEAD_ID
+/design/                  @DESIGN_ID
+/database/                @DATA_ID
+/packages/shared/policy/  @DATA_ID @AI_ID
+/apps/api/                @BACKEND_ID
+/apps/web/                @FRONTEND_ID
+/ai/                      @AI_ID
+/docs/api/                @BACKEND_ID @FRONTEND_ID
+/packages/shared/src/     @BACKEND_ID @FRONTEND_ID
+/docs/ai/                 @AI_ID
+/docs/pitch/              @LEAD_ID @AI_ID

@@ -1,0 +1,68 @@
+{
+  "$note": "발표 데모가 항상 같은 결과를 내도록 고정한 시나리오 (와이어프레임 8-1~8-5 예시와 동일)",
+  "devices": [
+    {
+      "code": "D-0412",
+      "product": "제습기 10L",
+      "source": "BUYBACK",
+      "grade": "A",
+      "priceType": "STANDARD",
+      "conditionScore": 92,
+      "preexisting": [
+        {
+          "side": "LEFT",
+          "lengthMm": 12,
+          "note": "옆면 아래 긁힘"
+        },
+        {
+          "side": "TOP",
+          "lengthMm": 6,
+          "note": "윗면 모서리 찍힘"
+        }
+      ],
+      "returnFinding": {
+        "side": "LEFT",
+        "lengthMm": 16,
+        "expected": "WEAR",
+        "needsReview": true
+      }
+    },
+    {
+      "code": "B-0107",
+      "product": "미니 건조기",
+      "source": "BUYBACK",
+      "grade": "B",
+      "priceType": "VALUE",
+      "conditionScore": 85,
+      "returnFinding": {
+        "side": "TOP",
+        "lengthMm": 42,
+        "expected": "FAULT",
+        "repairCostKrw": 48000,
+        "residualValueKrw": 301000,
+        "protection": "FULL"
+      }
+    },
+    {
+      "code": "H-0033",
+      "product": "가습기 3L",
+      "source": "NEW",
+      "grade": "A",
+      "priceType": "STANDARD",
+      "conditionScore": 98,
+      "returnFinding": null
+    }
+  ],
+  "users": [
+    {
+      "name": "김성북",
+      "phone": "010-1234-5678",
+      "school": "성신여대"
+    },
+    {
+      "name": "운영자",
+      "phone": "010-0000-0000",
+      "isAdmin": true
+    }
+  ]
+}

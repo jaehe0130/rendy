@@ -1,0 +1,14 @@
+{
+  "name": "rendy",
+  "private": true,
+  "packageManager": "pnpm@9.12.0",
+  "scripts": {
+    "dev:web": "pnpm --filter @rendy/web dev",
+    "dev:api": "pnpm --filter @rendy/api start:dev",
+    "db:up": "docker compose up -d db",
+    "db:migrate": "pnpm --filter @rendy/api exec prisma migrate dev",
+    "db:seed": "pnpm --filter @rendy/api exec prisma db seed",
+    "ai:dev": "cd ai/vision && uvicorn service.main:app --reload --port 8001",
+    "contract:lint": "npx -y @redocly/cli lint docs/api/openapi.yaml ai/vision/contract/openapi.yaml"
+  }
+}

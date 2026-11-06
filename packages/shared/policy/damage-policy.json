@@ -1,0 +1,57 @@
+{
+  "version": "2026-11-hackathon",
+  "description": "파손 판정·보장 정책. web/api(TS)와 ai(Python)가 모두 이 파일을 읽는다. 숫자를 코드에 하드코딩하지 말 것.",
+  "wearThresholdMm": 20,
+  "reviewMarginMm": 15,
+  "reviewMarginNote": "길이 오차 평균 약 15mm(합성 실험). 20±15mm 안의 흠은 AI 분류와 관계없이 needsReview=true",
+  "conditionScore": {
+    "downgradeToValueBelow": 70
+  },
+  "photoSides": {
+    "OUTBOUND": [
+      "FRONT",
+      "LEFT",
+      "RIGHT",
+      "BACK",
+      "TOP",
+      "OPERATING"
+    ],
+    "RECEIVED": [
+      "FRONT",
+      "LEFT",
+      "OPERATING"
+    ],
+    "RETURN": [
+      "FRONT",
+      "LEFT",
+      "OPERATING"
+    ]
+  },
+  "photoSidesNote": "고객 '옆면'은 LEFT로 가정 — docs/open-issues.md에서 확정 필요",
+  "protectionPlans": {
+    "BASIC": {
+      "label": "기본",
+      "monthlyKrw": 0,
+      "faultCharge": "REPAIR_COST_CAPPED_BY_RESIDUAL",
+      "lossRatio": 1.0
+    },
+    "SAFE": {
+      "label": "안심",
+      "monthlyKrw": 1000,
+      "faultCharge": "MAX",
+      "faultMaxKrw": 10000,
+      "lossRatio": 1.0
+    },
+    "FULL": {
+      "label": "완전 안심",
+      "monthlyKrw": 2000,
+      "faultCharge": "ZERO_ONCE_PER_RENTAL",
+      "lossRatio": 0.5
+    }
+  },
+  "wearChargeKrw": 0,
+  "intentionalCovered": false,
+  "receivedReportWindowHours": 24,
+  "disputeWindowHours": 48,
+  "disputeResolutionBusinessDays": 3
+}
