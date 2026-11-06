@@ -20,7 +20,6 @@ export default function My() {
   const openQ = new URLSearchParams(location.search).get('open')
   const [ext, setExt] = useState<Rental | null>(openQ === 'extend' ? rentals[0] ?? null : null)
   const [extM, setExtM] = useState(1)
-  const [extW, setExtW] = useState(0) // 0이면 1개월 단위, 1~3이면 마무리 1주 연장
   const [ret, setRet] = useState<Rental | null>(openQ === 'return' ? rentals[0] ?? null : null)
   const [photos, setPhotos] = useState<File[]>([])
   const [judge, setJudge] = useState<'idle' | 'loading' | 'done'>(openQ === 'return' ? 'done' : 'idle')
@@ -33,9 +32,7 @@ export default function My() {
   const active = rentals.filter((r) => r.status !== '회수 완료')
   const newest = active.filter((r) => r.status === '사용 중' && !checked.includes(r.id)).sort((a, b) => b.start.localeCompare(a.start))[0]
   const closeRet = () => { setRet(null); setPhotos([]); setJudge('idle') }
-  const weekOk = !!ext && dday(ext.end) <= 14
-  const weekPrice = ext ? Math.round(ext.price / 3 / 100) * 100 : 0
-  const newEnd = ext ? iso(extW ? addDays(new Date(ext.end), extW * 7) : addMonths(addDays(new Date(ext.end), 1), extM)) : ''
+  const newEnd = ext ? iso(addMonths(addDays(new Date(ext.end), 1), extM)) : ''
 
   return (
     <section className="section bg-surface">
@@ -84,7 +81,7 @@ export default function My() {
                 </div>
                 {r.status === '사용 중' && (
                   <div className="stack gap-8" style={{ width: 150 }}>
-                    {r.mode === 'long' && <button className="btn sm" onClick={() => { setExt(r); setExtW(0) }}>연장하기</button>}
+                    {r.mode === 'long' && <button className="btn sm" onClick={() => setExt(r)}>연장하기</button>}
                     <Link className="btn line sm" to={`/products?cat=${p.category}`}>다른 걸로 교체</Link>
                     <button className="btn line sm" onClick={() => setRet(r)}>반납 신청</button>
                   </div>
@@ -104,16 +101,13 @@ export default function My() {
           <h3 className="serif" style={{ fontSize: 26, marginBottom: 6 }}>기간 연장</h3>
           <p className="muted" style={{ marginBottom: 16 }}>{productById(ext.productId)!.name} · 지금 반납일 {ext.end}</p>
           <b style={{ fontSize: 14 }}>1개월 단위 연장 · 연장 쿠폰 적용</b>
-          <div className="grid g3" style={{ gap: 8, gridTemplateColumns: 'repeat(3,1fr)', margin: '8px 0 16px' }}>{[1, 2, 3].map((m) => <button key={m} className={`opt ${!extW && extM === m ? 'on' : ''}`} onClick={() => { setExtW(0); setExtM(m) }}><b>+{m}개월</b></button>)}</div>
-          <b style={{ fontSize: 14 }}>반납 직전 마무리 연장 · 1주 단위 · 최대 3주</b>
-          <div className="grid g3" style={{ gap: 8, gridTemplateColumns: 'repeat(3,1fr)', margin: '8px 0 4px' }}>{[1, 2, 3].map((w) => <button key={w} className={`opt ${extW === w ? 'on' : ''}`} disabled={!weekOk} style={{ opacity: weekOk ? 1 : 0.4 }} onClick={() => setExtW(w)}><b>+{w}주</b><small>{won(weekPrice * w)}</small></button>)}</div>
-          <span className="faint" style={{ fontSize: 12, display: 'block', marginBottom: 16 }}>{weekOk ? '1주 = 월 요금의 1/3 · 반납 요일은 그대로예요' : `반납 2주 전부터 열려요 (지금 D-${dday(ext.end)})`} · 다음 예약이 잡혀 있으면 1주 연장은 막혀요</span>
+          <div className="grid g3" style={{ gap: 8, gridTemplateColumns: 'repeat(3,1fr)', margin: '8px 0 16px' }}>{[1, 2, 3].map((m) => <button key={m} className={`opt ${extM === m ? 'on' : ''}`} onClick={() => setExtM(m)}><b>+{m}개월</b></button>)}</div>
           <div className="stack gap-8" style={{ background: 'var(--surface)', padding: 16, marginBottom: 16 }}>
             <div className="kv"><span>새 반납일</span><b>{newEnd}</b></div>
-            <div className="kv"><span>추가 결제</span><b>{extW ? won(weekPrice * extW) : `월 ${won(ext.price)} × ${extM}`}</b></div>
-            <div className="kv"><span>연장 혜택</span><b>{extW ? '반납 없이 연장 · 배송·회수비 없음' : '소모품 무료 교체'}</b></div>
+            <div className="kv"><span>추가 결제</span><b>{`월 ${won(ext.price)} × ${extM}`}</b></div>
+            <div className="kv"><span>연장 혜택</span><b>소모품 무료 교체</b></div>
           </div>
-          <div className="row gap-8"><button className="btn line" onClick={() => setExt(null)}>취소</button><button className="btn" style={{ flex: 1 }} onClick={() => { extendRental(ext.id, extM, extW); setExt(null); setExtW(0); flash(extW ? `${extW}주 연장됐어요. 반납일 ${newEnd}` : '연장됐어요. 다음 결제일부터 반영돼요') }}>연장하기</button></div>
+          <div className="row gap-8"><button className="btn line" onClick={() => setExt(null)}>취소</button><button className="btn" style={{ flex: 1 }} onClick={() => { extendRental(ext.id, extM); setExt(null); flash('연장됐어요. 다음 결제일부터 반영돼요') }}>연장하기</button></div>
         </Modal>
       )}
 
@@ -123,7 +117,7 @@ export default function My() {
             <div className="stack gap-12">
               <h3 className="serif" style={{ fontSize: 26 }}>반납 신청</h3>
               <p className="muted" style={{ fontSize: 14 }}>{productById(ret.productId)!.name} · 일찍 반납해도 처음 고른 기간의 요금은 그대로예요.</p>
-              <div className="field"><label>회수 날짜</label><div className="chips">{['다음 배송일 (화)', '그다음 (금)', '지정일 외 급행 (+10,000원)'].map((x, i) => <span key={x} className={`chip ${i === 0 ? 'on' : ''}`}>{x}</span>)}</div></div>
+              <div className="field"><label>회수 날짜</label><div className="chips">{['다음 배송일 (화)', '그다음 (금)'].map((x, i) => <span key={x} className={`chip ${i === 0 ? 'on' : ''}`}>{x}</span>)}</div></div>
               <div className="row gap-8"><span className="badge orange">AI</span><b style={{ fontSize: 14 }}>지금 상태 사진 3장 · 출고 사진과 비교</b></div>
               <div className="grid g3" style={{ gap: 8, gridTemplateColumns: 'repeat(3,1fr)' }}>{['정면', '옆면', '작동 화면'].map((x) => <Upload key={x} label={x} onFile={(f) => setPhotos((ps) => [...ps, f])} />)}</div>
               <button className="btn block" disabled={photos.length < 3 || judge === 'loading'} onClick={() => { setJudge('loading'); setTimeout(() => setJudge('done'), 1400) }}>{judge === 'loading' ? 'AI가 출고 사진과 비교하는 중…' : `사진 올리고 AI 확인 (${photos.length}/3)`}</button>

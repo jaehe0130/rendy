@@ -31,6 +31,7 @@ IMAGE_SIZE = int(os.getenv("VISION_IMAGE_SIZE", "384"))
 VISIBLE_WIDTH_MM = float(os.getenv("VISION_VISIBLE_WIDTH_MM", "400"))
 PIX_K = float(os.getenv("VISION_PIX_K", "4.0"))        # 이상 지도 기준값 = 평균 + K × 표준편차
 MIN_AREA = int(os.getenv("VISION_MIN_AREA", "15"))     # 이보다 작은 덩어리는 잡음으로 봄 (px)
+PIX_ABS = float(os.getenv("VISION_PIX_ABS", "0"))       # 이상 점수 최소 기준 (변화가 없을 때 잡음이 걸리지 않게, 실제 사진으로 맞춤)
 
 
 @dataclass
@@ -135,16 +136,15 @@ def align(src: np.ndarray, dst: np.ndarray) -> Tuple[np.ndarray, bool]:
     return cv2.warpPerspective(src, H, (IMAGE_SIZE, IMAGE_SIZE), borderMode=cv2.BORDER_REFLECT), True
 
 
-def find_new_damage(baseline: List[np.ndarray], current: np.ndarray) -> Tuple[List[RawFinding], bool]:
-    """기준 사진(같은 면) 대비 현재 사진에 새로 생긴 손상 후보. (후보 목록, 사진 맞추기 성공 여부)"""
+def _analyze(baseline: List[np.ndarray], current: np.ndarray, width_mm: float):
     model = get_model()
     cur, ok = align(current, baseline[0])
     amap = model.anomaly_map(cur, model.bank(baseline))
-    thr = float(amap.mean() + PIX_K * amap.std())
+    thr = max(float(amap.mean() + PIX_K * amap.std()), PIX_ABS)
     m = (amap > thr).astype(np.uint8)
     n, lab, stats, _ = cv2.connectedComponentsWithStats(m)
-    px_per_mm = IMAGE_SIZE / VISIBLE_WIDTH_MM
-    out: List[RawFinding] = []
+    px_per_mm = IMAGE_SIZE / width_mm
+    out: List[Tuple[RawFinding, np.ndarray]] = []
     for k in range(1, n):
         x, y, w, h, area = stats[k]
         if area < MIN_AREA:
@@ -152,13 +152,39 @@ def find_new_damage(baseline: List[np.ndarray], current: np.ndarray) -> Tuple[Li
         comp = (lab == k).astype(np.uint8)
         cnts, _ = cv2.findContours(comp, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         (_, _), (rw, rh), _ = cv2.minAreaRect(max(cnts, key=cv2.contourArea))
-        out.append(RawFinding(
+        out.append((RawFinding(
             bbox=[x / IMAGE_SIZE, y / IMAGE_SIZE, w / IMAGE_SIZE, h / IMAGE_SIZE],
             length_mm=round(max(rw, rh) / px_per_mm, 1),
             peak_ratio=float(amap[comp > 0].max() / max(thr, 1e-6)),
-        ))
-    out.sort(key=lambda f: f.length_mm, reverse=True)
-    return out[:3], ok
+        ), comp))
+    out.sort(key=lambda f: f[0].length_mm, reverse=True)
+    return out[:3], ok, cur, amap
+
+
+def find_new_damage(baseline: List[np.ndarray], current: np.ndarray) -> Tuple[List[RawFinding], bool]:
+    """기준 사진(같은 면) 대비 현재 사진에 새로 생긴 손상 후보. (후보 목록, 사진 맞추기 성공 여부)"""
+    found, ok, _, _ = _analyze(baseline, current, VISIBLE_WIDTH_MM)
+    return [f for f, _ in found], ok
+
+
+def demo_compare(before: np.ndarray, after: np.ndarray, width_mm: float) -> dict:
+    """체험용: 전/후 사진 → 새로 생긴 부분 후보 + 표시 이미지(JPEG data URI)."""
+    found, ok, cur, amap = _analyze([before], after, width_mm)
+    heat = cv2.applyColorMap((np.clip(amap / max(float(amap.max()), 1e-6), 0, 1) * 255).astype(np.uint8), cv2.COLORMAP_JET)
+    view = cv2.addWeighted(cv2.cvtColor(cur, cv2.COLOR_RGB2BGR), 0.85, heat, 0.15, 0)
+    for f, comp in found:
+        cnts, _ = cv2.findContours(comp, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        cv2.drawContours(view, cnts, -1, (47, 122, 255), 2)
+        x, y, w, h = (np.array(f.bbox) * IMAGE_SIZE).astype(int)
+        cv2.rectangle(view, (x - 3, y - 3), (x + w + 3, y + h + 3), (47, 122, 255), 2)
+    okj, jpg = cv2.imencode(".jpg", view, [cv2.IMWRITE_JPEG_QUALITY, 85])
+    return {
+        "stats": {"mean": round(float(amap.mean()), 4), "std": round(float(amap.std()), 4), "max": round(float(amap.max()), 4),
+                  "peaks": [round(float(amap[c > 0].max()), 4) for _, c in found]},
+        "aligned": ok,
+        "findings": [{"bbox": f.bbox, "lengthMm": f.length_mm, "confidence": confidence(f.peak_ratio, ok)} for f, _ in found],
+        "image": "data:image/jpeg;base64," + base64.b64encode(jpg.tobytes()).decode() if okj else None,
+    }
 
 
 def confidence(peak_ratio: float, aligned: bool) -> float:

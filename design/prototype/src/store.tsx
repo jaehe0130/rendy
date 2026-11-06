@@ -80,7 +80,7 @@ interface Ctx extends State {
   removeFromCart: (key: string) => void
   checkout: (start: string, couponIds: string[]) => string[]
   joinWaitlist: (productId: string) => void
-  extendRental: (id: string, months: number, weeks?: number) => void
+  extendRental: (id: string, months: number) => void
   requestReturn: (id: string) => void
   addSell: (c: Omit<SellCase, 'id' | 'date'>) => void
   reset: () => void
@@ -122,8 +122,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       return rentals.map((r) => r.id)
     },
     joinWaitlist: (productId) => setS((p) => ({ ...p, waitlist: p.waitlist.includes(productId) ? p.waitlist : [...p.waitlist, productId] })),
-    // weeks > 0이면 반납 직전 마무리 1주 연장, 아니면 1개월 단위 연장
-    extendRental: (id, months, weeks = 0) => setS((p) => ({ ...p, rentals: p.rentals.map((r) => (r.id === id ? { ...r, end: iso(weeks ? addDays(new Date(r.end), weeks * 7) : addMonths(addDays(new Date(r.end), 1), months)) } : r)) })),
+    // 1개월 단위 연장
+    extendRental: (id, months) => setS((p) => ({ ...p, rentals: p.rentals.map((r) => (r.id === id ? { ...r, end: iso(addMonths(addDays(new Date(r.end), 1), months)) } : r)) })),
     requestReturn: (id) => setS((p) => ({ ...p, rentals: p.rentals.map((r) => (r.id === id ? { ...r, status: '반납 신청' } : r)) })),
     addSell: (c) => setS((p) => ({ ...p, sells: [{ ...c, id: 'S-' + Date.now(), date: iso(new Date()) }, ...p.sells] })),
     reset: () => setS(seed),

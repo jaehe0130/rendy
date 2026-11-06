@@ -203,7 +203,7 @@ export function Footer() {
           <b style={{ fontSize: 14 }}>고객센터 1600-0000 · 평일 10~18시</b>
         </div>
         <div><p className="eyebrow" style={{ color: 'var(--ink-3)' }}>Service</p><Link to="/products">빌리기</Link><Link to="/ai">AI 살림 상담</Link><Link to="/sell">팔기</Link><Link to="/guide">가전 가이드</Link></div>
-        <div><p className="eyebrow" style={{ color: 'var(--ink-3)' }}>Support</p><Link to="/">자주 묻는 질문</Link><Link to="/">거점 위치</Link><Link to="/admin">운영자 화면</Link></div>
+        <div><p className="eyebrow" style={{ color: 'var(--ink-3)' }}>Support</p><Link to="/">자주 묻는 질문</Link><Link to="/admin">운영자 화면</Link></div>
         <div><p className="eyebrow" style={{ color: 'var(--ink-3)' }}>Policy</p><Link to="/">이용약관</Link><Link to="/">개인정보처리방침</Link><Link to="/">파손 보장 안내</Link></div>
       </div>
       <div className="wm">{BRAND.en || BRAND.name}</div>

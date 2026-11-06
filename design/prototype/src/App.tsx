@@ -17,6 +17,7 @@ import My from './pages/My'
 import Sell from './pages/Sell'
 import Admin from './pages/Admin'
 import Judge from './pages/Judge'
+import Try from './pages/Try'
 
 function Layout() {
   const { pathname } = useLocation()
@@ -49,6 +50,7 @@ export default function App() {
         <Route path="/sell" element={<Sell />} />
         <Route path="/admin" element={<Admin />} />
         <Route path="/admin/judge" element={<Judge />} />
+        <Route path="/try" element={<Try />} />
         <Route path="*" element={<Main />} />
       </Route>
     </Routes>

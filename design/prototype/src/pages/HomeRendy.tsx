@@ -11,7 +11,7 @@ const FAQ: [string, string][] = [
   ['보증금은 정말 없나요?', '네. 결제 카드만 등록해요. 파손은 렌터카 자차처럼 보장 단계를 골라요. 기본(월 0원, 수리비 100%) · 안심(월 대여료의 5%, 수리비 30%) · 완전 안심(월 대여료의 10%, 0%). 2cm 이하 생활 마모는 어떤 단계든 0원이에요.'],
   ['최소 얼마나 빌려야 하나요?', '2개월부터 1개월 단위로 연장해요. 반납 2주 전부터는 1주 단위로 최대 3주까지 더 쓸 수 있어요.'],
   ['일찍 반납하면 환불되나요?', '처음 고른 기간이 약정이라 환불은 없어요. 대신 언제든 연장하거나 다른 가전으로 교체할 수 있어요.'],
-  ['배송비는 얼마예요?', '주 2회 정해진 요일(화·금)에 배송·회수해요. 한 번에 결제하는 월 렌탈료가 3만원 이상이면 무료, 미만이면 1만원이에요. 돈암동 거점 수령은 무료예요.'],
+  ['배송비는 얼마예요?', '주 2회 정해진 요일(화·금)에 배송·회수해요. 한 번에 결제하는 월 렌탈료가 3만원 이상이면 무료, 미만이면 1만원이에요.'],
   ['흠집이 생기면 어떻게 판정해요?', '출고 때 찍은 사진과 반납 사진을 AI가 비교해 새로 생긴 흠집만 표시하고 길이를 재요. 최종 판정은 운영자가 작동 테스트와 함께 하고, 48시간 안에 이의 신청할 수 있어요.'],
   ['쓰던 가전은 얼마에 팔 수 있어요?', '구매 2년 이내 제품이면 공식몰가의 25~30%예요. 렌디에서 빌려 쓴 적이 있으면 5%p 더 드려요. 수거는 무료, 검수 끝나면 바로 입금해요.'],
 ]
@@ -39,7 +39,7 @@ function PhoneHome() {
           <span style={{ fontSize: 10, opacity: .85 }}>내 렌탈</span>
           <b style={{ fontSize: 15, lineHeight: 1.35 }}>{p?.name} 반납까지<br />D-{Math.max(0, d)} 남았어요</b>
           <span style={{ fontSize: 10, opacity: .85 }}>반납 없이 연장하면 배송비 0원</span>
-          <div className="rd-pill"><span>1주 연장 · {won(5000)}</span><span>›</span></div>
+          <div className="rd-pill"><span>1개월 연장하기</span><span>›</span></div>
         </div>
         <div className="row between" style={{ marginTop: 12 }}><b style={{ fontSize: 12 }}>렌디가 주는 혜택</b><span style={{ fontSize: 10, color: 'var(--ink-3)' }}>전체보기 ›</span></div>
         <div className="row gap-4" style={{ margin: '6px 0' }}>{['전체', '학생', '연장', '이사'].map((x, i) => <span key={x} className={`rd-mini-chip ${i === 0 ? 'on' : ''}`}>{x}</span>)}</div>
@@ -90,6 +90,7 @@ export default function HomeRendy() {
         <div className="row gap-12" style={{ justifyContent: 'center', flexWrap: 'wrap' }}>
           <Link to="/products" className="btn">가전 보러 가기</Link>
           <Link to="/quiz" className="btn line">1분 진단</Link>
+          <Link to="/try" className="btn line">AI 흠집 찾기 체험</Link>
         </div>
         <div className="rd-phones"><PhoneCheck /><PhoneHome /></div>
       </section>

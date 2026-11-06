@@ -156,7 +156,6 @@ export const SCHOOLS: { name: string; domain: string; count: number }[] = [
 export const PRICING = {
   delivery: 10000, // 주 2회 지정일 배송·회수 (한 번 결제 월 렌탈료 합계 3만원 미만)
   freeOver: 30000, // 이 금액 이상이면 배송·회수 무료
-  express: 10000, // 지정일 외 급행 배송
   firstMonthCouponMax: 10000,
   inviteCoupon: 5000,
 }

@@ -259,3 +259,14 @@ html[data-theme="rendy"] .toast { border-radius: 12px; background: var(--navy-90
 @media (max-width: 860px) { .judge-grid { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 560px) { .hide-sm { display: none !important; } }
 .badge { white-space: nowrap; }
+
+/* AI 체험 (/try): 둥근 요소 최소화 */
+.try .panel, .try .btn, .try .badge { border-radius: 4px !important; }
+.try-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 860px) { .try-grid { grid-template-columns: minmax(0, 1fr); } }
+.try-shots { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.try-shot { position: relative; display: grid; place-items: center; aspect-ratio: 3 / 4; border: 1px dashed var(--line); background: var(--surface); cursor: pointer; overflow: hidden; border-radius: 4px; }
+.try-shot span { display: grid; gap: 6px; text-align: center; font-size: 14px; color: var(--ink-2); }
+.try-shot span b { font-size: 22px; color: var(--ink); }
+.try-shot img { width: 100%; height: 100%; object-fit: cover; }
+.try-shot input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
