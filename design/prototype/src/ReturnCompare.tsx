@@ -42,7 +42,8 @@ function shrink(file: Blob): Promise<string> {
 
 // kits: 상품 id 목록 (체험 화면은 고를 수 있게 여러 개, 내 렌탈 반납은 빌린 상품 하나)
 // 예시 반납 사진 줄: 심사위원은 반납할 실물이 없으니 체험 화면 · 반납 팝업 둘 다 그 상품 사진을 보여 줌
-export function ReturnCompare({ plan, actions, kits = ['dehumidifier-10'] }: { plan?: PlanKey; actions?: (r: VisionRes, wear: boolean) => ReactNode; kits?: string[] }) {
+// lockOutbound: 내 렌탈 반납 — 빌린 그 기기(상품 사진 1 = 긁힘 A의 원본)의 출고 사진으로 고정. 다른 예시를 골라도 안 바뀜
+export function ReturnCompare({ plan, actions, kits = ['dehumidifier-10'], lockOutbound = false }: { plan?: PlanKey; actions?: (r: VisionRes, wear: boolean) => ReactNode; kits?: string[]; lockOutbound?: boolean }) {
   const [kit, setKit] = useState(kits[0])
   const [outbound, setOutbound] = useState(firstBefore(kits[0]))
   const samples = kitOf(kit).pairs
@@ -62,15 +63,16 @@ export function ReturnCompare({ plan, actions, kits = ['dehumidifier-10'] }: { p
     const kk = kits.find((x) => kitOf(x).pairs.some((p) => p.key === k))
     const p = kk && kitOf(kk).pairs.find((x) => x.key === k)
     if (!kk || !p) return
-    setKit(kk); setOutbound(p.before)
-    ;(async () => { const a = await shrink(await (await fetch(`/samples/${p.key}.webp`)).blob()); setAfter(a); setPick(p.key); run(a, p.before) })()
+    const before = lockOutbound ? firstBefore(kk) : p.before
+    setKit(kk); setOutbound(before)
+    ;(async () => { const a = await shrink(await (await fetch(`/samples/${p.key}.webp`)).blob()); setAfter(a); setPick(p.key); run(a, before) })()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const setA = (v: string, key = '') => { setAfter(v); setPick(key); setRes(null); setState('idle') }
   const pickKit = (k: string) => { setKit(k); setOutbound(firstBefore(k)); setA('') }
-  // 예시 반납 사진을 고르면 출고 사진도 그 기기의 출고 사진으로
-  const pickSample = async (p: Pair) => { setOutbound(p.before); setA(await shrink(await (await fetch(`/samples/${p.key}.webp`)).blob()), p.key) }
+  // 체험 화면: 예시 반납 사진을 고르면 출고 사진도 그 기기의 출고 사진으로 (내 렌탈 반납은 고정)
+  const pickSample = async (p: Pair) => { if (!lockOutbound) setOutbound(p.before); setA(await shrink(await (await fetch(`/samples/${p.key}.webp`)).blob()), p.key) }
   const run = async (a = after, before0 = outbound) => {
     setState('busy'); setSlow(false); setErr(''); setRes(null)
     const t = setTimeout(() => setSlow(true), 8000)
