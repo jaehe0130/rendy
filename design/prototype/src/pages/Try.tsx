@@ -9,7 +9,7 @@ interface Finding { bbox: number[]; lengthMm: number; confidence: number; sugges
 interface Res { aligned: boolean; findings: Finding[]; image: string | null; ms: number; wearThresholdMm: number }
 
 // 올리기 전에 긴 변 768px JPEG로 줄임 (전송 빠르게)
-function shrink(file: File): Promise<string> {
+function shrink(file: Blob): Promise<string> {
   return new Promise((ok, fail) => {
     const img = new Image()
     img.onload = () => {
@@ -26,8 +26,8 @@ function shrink(file: File): Promise<string> {
 function Shot({ n, label, url, onPick }: { n: string; label: string; url: string; onPick: (f: File) => void }) {
   return (
     <label className="try-shot">
-      {url ? <img src={url} alt={label} /> : <span><b>{n}</b>{label}</span>}
-      <input type="file" accept="image/*" capture="environment" onChange={(e) => { const f = e.target.files?.[0]; if (f) onPick(f) }} />
+      {url ? <img src={url} alt={label} /> : <span><b>{n}</b>{label}<small className="faint">찍기 · 앨범에서 고르기</small></span>}
+      <input type="file" accept="image/*" onChange={(e) => { const f = e.target.files?.[0]; if (f) onPick(f) }} />
     </label>
   )
 }
@@ -55,6 +55,13 @@ export default function Try() {
     } finally { clearTimeout(t) }
   }
 
+  // 예시 사진 (사진이 없을 때): 같은 제습기 앞면 전/후
+  const loadSample = async (after: string) => {
+    const get = async (n: string) => shrink(await (await fetch(`/samples/${n}.webp`)).blob())
+    const [b, a] = await Promise.all([get('before'), get(after)])
+    setBefore(b); setAfter(a); setRes(null); setState('idle')
+  }
+
   const top = res?.findings[0]
   return (
     <section className="section bg-surface try">
@@ -71,6 +78,10 @@ export default function Try() {
             <Shot n="2" label="테이프 붙이고 다시" url={after} onPick={async (f) => { setAfter(await shrink(f)); setState('idle') }} />
           </div>
           <span className="faint" style={{ fontSize: 12 }}>같은 거리 · 같은 각도 · 밝은 곳에서 찍으면 잘 찾아요.</span>
+          <div className="stack gap-4">
+            <span className="faint" style={{ fontSize: 12 }}>사진이 없으면 예시로 해 보기</span>
+            <div className="chips">{[['긁힘', 'after-scratch'], ['테이프', 'after-tape'], ['작은 긁힘', 'after-small'], ['변화 없음', 'after-same']].map(([l, k]) => <button key={k} className="chip" onClick={() => loadSample(k)}>{l}</button>)}</div>
+          </div>
           <button className="btn block" disabled={!before || !after || state === 'busy'} onClick={run}>{state === 'busy' ? (slow ? 'AI 서버 깨우는 중… 최대 1분' : 'AI가 비교하는 중…') : 'AI로 비교하기'}</button>
         </div>
 
