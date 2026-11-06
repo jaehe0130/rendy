@@ -123,8 +123,7 @@ export function ReturnCompare({ plan, actions, kits = ['dehumidifier-10'] }: { p
           {bad ? (
             <div className="try-check stack gap-8">
               <b style={{ fontSize: 18 }}>사진을 확인해 주세요</b>
-              <span className="muted" style={{ fontSize: 14 }}>빌린 가전을 출고 사진과 같은 거리 · 같은 각도에서 밝게 찍었는지 확인해 주세요. 계속 안 되면 고객센터로 문의해 주세요.</span>
-              <b style={{ fontSize: 14 }}>고객센터 1600-0000 · 평일 10~18시</b>
+              <span className="muted" style={{ fontSize: 14 }}>빌린 가전을 출고 사진과 같은 거리 · 같은 각도에서 밝게 찍었는지 확인해 주세요.</span>
               <button className="btn line sm" style={{ alignSelf: 'flex-start' }} onClick={() => setA('')}>다시 찍기</button>
             </div>
           ) : (
