@@ -60,7 +60,7 @@ export default function My() {
             <div className="row gap-16 wrap-row" style={{ background: 'var(--peach)', padding: '16px 20px' }}>
               <div className="stack gap-4" style={{ flex: 1, minWidth: 240 }}>
                 <b>{productById(newest.productId)!.name} 받으셨나요? 받은 날 사진 3장으로 상태를 확인해 주세요</b>
-                <span className="faint" style={{ fontSize: 13 }}>정면 · 옆면 · 작동 화면 · 24시간 안에 이상을 알려주면 무상 교체 · 이 사진에 있던 흠은 반납 때 책임에서 빠져요</span>
+                <span className="faint" style={{ fontSize: 13 }}>정면 · 옆면 · 전원 ON 사진 · 24시간 안에 이상을 알려주면 무상 교체 · 이 사진에 있던 흠은 반납 때 책임에서 빠져요</span>
               </div>
               <button className="btn sm" onClick={() => { setRecv(newest); setRecvPhotos(0) }}>사진 올리기</button>
             </div>
@@ -127,7 +127,7 @@ export default function My() {
           ) : (
             <div className="stack gap-12">
               <div className="row gap-8"><span className="badge orange">AI</span><h3 className="serif" style={{ fontSize: 26 }}>AI 사진 비교 · 예비 판정</h3></div>
-              {['정면', '옆면', '작동 화면'].map((x, i) => (
+              {['정면', '옆면', '전원 ON 사진'].map((x, i) => (
                 <div key={x} className="kv"><span>{x} (출고 → 지금)</span><b style={{ color: i === 1 ? 'var(--primary)' : undefined }}>{i === 1 ? '긁힘 1.5cm 새로 발견 → 생활 마모' : '변화 없음'}</b></div>
               ))}
               <div style={{ background: 'var(--surface)', padding: 18 }} className="stack gap-4">
@@ -146,7 +146,7 @@ export default function My() {
           <div className="stack gap-12">
             <h3 className="serif" style={{ fontSize: 26 }}>받은 날 상태 확인</h3>
             <p className="muted" style={{ fontSize: 14 }}>{productById(recv.productId)!.name} · {recv.start} 받음 · 24시간 안에 올려 주세요</p>
-            <div className="grid g3" style={{ gap: 8, gridTemplateColumns: 'repeat(3,1fr)' }}>{['정면', '옆면', '작동 화면'].map((x) => <Upload key={x} label={x} onFile={() => setRecvPhotos((n) => n + 1)} />)}</div>
+            <div className="grid g3" style={{ gap: 8, gridTemplateColumns: 'repeat(3,1fr)' }}>{['정면', '옆면', '전원 ON 사진'].map((x) => <Upload key={x} label={x} onFile={() => setRecvPhotos((n) => n + 1)} />)}</div>
             <label className="row gap-8" style={{ fontSize: 14 }}><input type="checkbox" /> 이상이 있어요 (다음 배송일에 무상 교체)</label>
             <button className="btn block" disabled={recvPhotos < 3} onClick={() => { setChecked((c) => [...c, recv.id]); setRecv(null); flash('상태를 기록했어요. 이 사진에 있던 흠은 반납 때 책임에서 빠져요') }}>{`상태 기록하기 (${Math.min(recvPhotos, 3)}/3)`}</button>
           </div>
