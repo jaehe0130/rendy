@@ -351,3 +351,8 @@ img.ill.photo.scene { object-fit: cover; }
 .rc-slot input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
 .rc-samples { display: grid; gap: 8px; padding: 12px; background: var(--surface); border-radius: 4px; font-size: 13px; font-weight: 700; }
 .rc .btn, .rc .badge { border-radius: 4px !important; }
+
+/* Figma 캡처용: 팝업을 끝까지 펼침 */
+html.capture body { position: relative; }
+html.capture .modal-bg { position: absolute; min-height: 100%; align-items: start; padding-top: 40px; }
+html.capture .modal { max-height: none; overflow: visible; }

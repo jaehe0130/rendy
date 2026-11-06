@@ -16,7 +16,7 @@ interface Case {
 }
 
 const REVIEW_MARGIN_CM = 0.5 // 2cm 기준 ± 이 안이면 AI 분류를 믿지 않고 운영자 확인 (실험 길이 오차 평균 약 1.5cm)
-const FACES = ['정면', '옆면', '작동 화면']
+const FACES = ['정면', '옆면', '전원 ON 사진']
 
 const CASES: Case[] = [
   { id: 'J-1103', productId: 'humidifier', who: '이○○ · 정릉동', plan: 'safe', released: '2025.03', lifeMonths: 60, aiCat: '변화 없음', conf: '낮음', marks: [], note: '반납 사진 반사광이 심해 비교 실패', repair: 0 },

@@ -16,7 +16,7 @@ export function Upload({ label, onFile }: { label: string; onFile?: (f: File) =>
 }
 
 export default function My() {
-  const { user, rentals, coupons, sells, waitlist, extendRental, requestReturn, logout, reset } = useStore()
+  const { user, rentals, coupons, sells, waitlist, extendRental, requestReturn, reset } = useStore()
   // ?open=extend | return | receive 이면 그 팝업을 열어 둔 채로 시작 (시안 캡처·시연용)
   const openQ = new URLSearchParams(location.search).get('open')
   const [ext, setExt] = useState<Rental | null>(openQ === 'extend' ? rentals[0] ?? null : null)
@@ -51,7 +51,6 @@ export default function My() {
           <b style={{ fontSize: 14 }}>팔기 {sells.length}</b>
           {sells.map((s) => <span key={s.id} className="faint" style={{ fontSize: 13 }}>· [{s.kind}] {s.item} · {s.amount} · {s.status}</span>)}
           <hr className="rule" />
-          <button className="btn line sm" onClick={logout}>로그아웃</button>
           <button className="faint" style={{ background: 'none', border: 0, fontSize: 12, textAlign: 'left' }} onClick={() => { reset(); flash('데모 데이터를 처음 상태로 돌렸어요') }}>데모 초기화</button>
         </aside>
         <div className="stack gap-16">
@@ -60,7 +59,7 @@ export default function My() {
             <div className="row gap-16 wrap-row" style={{ background: 'var(--peach)', padding: '16px 20px' }}>
               <div className="stack gap-4" style={{ flex: 1, minWidth: 240 }}>
                 <b>{productById(newest.productId)!.name} 받으셨나요? 받은 날 사진 3장으로 상태를 확인해 주세요</b>
-                <span className="faint" style={{ fontSize: 13 }}>정면 · 옆면 · 작동 화면 · 24시간 안에 이상을 알려주면 무상 교체 · 이 사진에 있던 흠은 반납 때 책임에서 빠져요</span>
+                <span className="faint" style={{ fontSize: 13 }}>정면 · 옆면 · 전원 ON 사진 · 24시간 안에 이상을 알려주면 무상 교체 · 이 사진에 있던 흠은 반납 때 책임에서 빠져요</span>
               </div>
               <button className="btn sm" onClick={() => { setRecv(newest); setRecvPhotos(0) }}>사진 올리기</button>
             </div>
@@ -120,14 +119,14 @@ export default function My() {
               <div className="field"><label>회수 날짜</label><div className="chips">{['다음 배송일 (화)', '그다음 (금)'].map((x, i) => <span key={x} className={`chip ${i === 0 ? 'on' : ''}`}>{x}</span>)}</div></div>
               <b style={{ fontSize: 14 }}>반납 사진 · AI가 출고 사진과 비교해요</b>
               {/* 실제 흠집 모델로 출고 사진(렌디 촬영) ↔ 반납 사진 비교 → 예비 판정 후 반납 확정 */}
-              <ReturnCompare plan={ret.plan} actions={() => (
+              <ReturnCompare key={ret.id} plan={ret.plan} kits={[ret.productId]} lockOutbound actions={() => (
                 <div className="row gap-8"><button className="btn line" onClick={() => { closeRet(); flash('이의 신청을 접수했어요. 3영업일 안에 다시 판정해요') }}>이의 신청</button><button className="btn" style={{ flex: 1 }} onClick={() => { requestReturn(ret.id); closeRet(); flash('반납 신청 완료. 회수 후 운영자가 최종 판정해요') }}>반납 확정</button></div>
               )} />
             </div>
           ) : (
             <div className="stack gap-12">
               <div className="row gap-8"><span className="badge orange">AI</span><h3 className="serif" style={{ fontSize: 26 }}>AI 사진 비교 · 예비 판정</h3></div>
-              {['정면', '옆면', '작동 화면'].map((x, i) => (
+              {['정면', '옆면', '전원 ON 사진'].map((x, i) => (
                 <div key={x} className="kv"><span>{x} (출고 → 지금)</span><b style={{ color: i === 1 ? 'var(--primary)' : undefined }}>{i === 1 ? '긁힘 1.5cm 새로 발견 → 생활 마모' : '변화 없음'}</b></div>
               ))}
               <div style={{ background: 'var(--surface)', padding: 18 }} className="stack gap-4">
@@ -146,7 +145,7 @@ export default function My() {
           <div className="stack gap-12">
             <h3 className="serif" style={{ fontSize: 26 }}>받은 날 상태 확인</h3>
             <p className="muted" style={{ fontSize: 14 }}>{productById(recv.productId)!.name} · {recv.start} 받음 · 24시간 안에 올려 주세요</p>
-            <div className="grid g3" style={{ gap: 8, gridTemplateColumns: 'repeat(3,1fr)' }}>{['정면', '옆면', '작동 화면'].map((x) => <Upload key={x} label={x} onFile={() => setRecvPhotos((n) => n + 1)} />)}</div>
+            <div className="grid g3" style={{ gap: 8, gridTemplateColumns: 'repeat(3,1fr)' }}>{['정면', '옆면', '전원 ON 사진'].map((x) => <Upload key={x} label={x} onFile={() => setRecvPhotos((n) => n + 1)} />)}</div>
             <label className="row gap-8" style={{ fontSize: 14 }}><input type="checkbox" /> 이상이 있어요 (다음 배송일에 무상 교체)</label>
             <button className="btn block" disabled={recvPhotos < 3} onClick={() => { setChecked((c) => [...c, recv.id]); setRecv(null); flash('상태를 기록했어요. 이 사진에 있던 흠은 반납 때 책임에서 빠져요') }}>{`상태 기록하기 (${Math.min(recvPhotos, 3)}/3)`}</button>
           </div>
