@@ -1,81 +1,210 @@
 openapi: 3.0.3
 info:
   title: Rendy API
-  version: 0.1.0
+  version: 0.2.0
   description: |
-    web ↔ api 계약. 이 파일이 먼저 바뀌고 구현이 따라온다.
-    P0 범위만 정의. P1/P2 엔드포인트는 필요할 때 추가.
+    web ↔ api 계약. 기준 문서: design/spec/기능명세서.md v3.2 (기능 ID를 각 operation summary에 표기).
+    이 파일이 먼저 바뀌고 구현이 따라온다. 범위: P0 전부 + 데모에 필요한 P1 일부.
+
+    공통 규칙
+    - 금액은 원 단위 정수(VAT 포함), 날짜는 Asia/Seoul 기준 'YYYY-MM-DD', 시각은 ISO 8601.
+    - 금액·재고·예약 가능 여부·최종 판정은 서버가 계산한다. AI 결과에는 항상 preliminary/aiGenerated 표시 (SYS-10).
+    - 권한(부록 F): public = 비회원 가능, member = 휴대폰 인증 회원, school = 학교 인증 회원, admin = 운영자.
+    - 사진은 브라우저가 Vercel Blob에 직접 올리고(POST /uploads/blob), API에는 URL만 보낸다. Vercel 함수 요청 본문 4.5MB 제한 때문.
 servers:
   - url: http://localhost:4000
+  - url: https://rendy-api.vercel.app
+security:
+  - bearer: []
 tags:
-  - name: auth
-  - name: products
-  - name: orders
-  - name: rentals
-  - name: inspections
-  - name: admin
+  - { name: auth, description: AUTH-01~06 }
+  - { name: catalog, description: "RENT-01~04 · 06 · 07 · 13 · 14 · GUIDE-01~04" }
+  - { name: diagnosis, description: GUIDE-05~06 }
+  - { name: orders, description: RENT-09~12 · MKT-07 }
+  - { name: rentals, description: MY-01~09 }
+  - { name: judgements, description: DMG-02~04 · MY-05 }
+  - { name: school, description: MKT-01~07 }
+  - { name: buyback, description: SELL-01~03 }
+  - { name: consult, description: AIC-01~03 }
+  - { name: me, description: MYP-01~04 }
+  - { name: uploads }
+  - { name: admin, description: ADM-01~10 · DMG-01 · DMG-05 }
+
 paths:
-  /auth/phone/request:
+  # ---------------------------------------------------------------- auth
+  /auth/otp:
     post:
       tags: [auth]
-      summary: 휴대폰 인증번호 요청 (1-2, 해커톤은 mock)
-      operationId: requestPhoneCode
+      summary: AUTH-03 인증번호 받기 (60초 재요청 제한, 하루 5회)
+      operationId: requestOtp
+      security: []
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              required: [name, birth, carrier, phone]
+              required: [name, birth6, carrier, phone]
               properties:
                 name: { type: string }
-                birth: { type: string, example: "2001-03-04" }
+                birth6: { type: string, pattern: '^\d{6}$', example: "010304" }
                 carrier: { type: string, enum: [SKT, KT, LGU, MVNO] }
                 phone: { type: string, example: "010-1234-5678" }
       responses:
-        "204": { description: 발송됨 }
-  /auth/phone/verify:
+        "200":
+          description: 발송됨
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  requestId: { type: string }
+                  expiresAt: { type: string, format: date-time }
+                  isExistingMember: { type: boolean, description: true면 약관 단계 없이 로그인(1-3R) }
+        "429": { $ref: "#/components/responses/Error" }
+  /auth/otp/verify:
     post:
       tags: [auth]
-      summary: 인증번호 확인 + 약관 동의 (1-3)
-      operationId: verifyPhoneCode
+      summary: AUTH-04 · AUTH-06 인증번호 확인 → 기존 회원 로그인 / 신규 가입(필수 약관 3개)
+      operationId: verifyOtp
+      security: []
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              required: [phone, code, agreements]
+              required: [requestId, code]
               properties:
-                phone: { type: string }
-                code: { type: string, example: "482913" }
+                requestId: { type: string }
+                code: { type: string, pattern: '^\d{6}$' }
                 agreements:
-                  type: object
-                  properties:
-                    terms: { type: boolean }
-                    privacy: { type: boolean }
-                    damagePolicy: { type: boolean }
-                    marketing: { type: boolean }
+                  type: array
+                  description: 신규 가입일 때만. TERMS·PRIVACY·DAMAGE_POLICY 필수
+                  items: { $ref: "#/components/schemas/Agreement" }
       responses:
         "200":
-          description: 로그인 완료
+          description: 로그인 완료 (세션 14일)
           content:
             application/json:
               schema:
                 type: object
                 properties:
                   accessToken: { type: string }
-                  user: { $ref: "#/components/schemas/User" }
+                  isNewMember: { type: boolean }
+                  member: { $ref: "#/components/schemas/Member" }
+        "400": { $ref: "#/components/responses/Error" }
+  /auth/logout:
+    post:
+      tags: [auth]
+      summary: AUTH-06 로그아웃
+      operationId: logout
+      responses:
+        "204": { description: OK }
+  /me:
+    get:
+      tags: [me]
+      summary: 내 정보 (상단 메뉴 · 2-1 내 렌탈 요약)
+      operationId: getMe
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Member"
+                  - type: object
+                    properties:
+                      rentalSummary:
+                        type: object
+                        properties:
+                          inUseCount: { type: integer }
+                          nearestReturnDday: { type: integer, nullable: true }
+                          usableCouponCount: { type: integer }
+    patch:
+      tags: [me]
+      summary: AUTH-05 맞춤 설정 (모두 선택)
+      operationId: updateMe
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                neighborhood: { type: string, example: "돈암동" }
+                stayPlan: { type: string, enum: [M2_3, M4_6, Y1_PLUS, LEAVING_SOON] }
+                interests: { type: array, items: { $ref: "#/components/schemas/Category" } }
+                marketingAgreed: { type: boolean }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Member" }
+  /me/coupons:
+    get:
+      tags: [me]
+      summary: MYP-03 쿠폰함
+      operationId: listMyCoupons
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/MemberCoupon" }
+  /me/payment-methods:
+    get:
+      tags: [me]
+      summary: MYP-01 결제 수단
+      operationId: listPaymentMethods
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/PaymentMethod" }
+    post:
+      tags: [me]
+      summary: MYP-01 카드 등록 (PG 빌링키 발급 결과 등록, 해커톤은 mock)
+      operationId: addPaymentMethod
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [provider, billingKey]
+              properties:
+                provider: { type: string, enum: [KAKAOPAY, TOSSPAY, CARD] }
+                billingKey: { type: string }
+      responses:
+        "201":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PaymentMethod" }
+
+  # ---------------------------------------------------------------- catalog
   /products:
     get:
-      tags: [products]
-      summary: 상품 목록 (2-2)
+      tags: [catalog]
+      summary: RENT-02 상품 목록 · 필터 (품목 단위, 품절도 숨기지 않음) · RENT-01 메인 많이 빌린 가전
       operationId: listProducts
+      security: []
       parameters:
         - { name: category, in: query, schema: { $ref: "#/components/schemas/Category" } }
         - { name: priceType, in: query, schema: { $ref: "#/components/schemas/PriceType" } }
         - { name: source, in: query, schema: { $ref: "#/components/schemas/DeviceSource" } }
-        - { name: available, in: query, schema: { type: boolean } }
+        - { name: delivery, in: query, schema: { $ref: "#/components/schemas/DeliveryMethod" } }
+        - { name: availableOnly, in: query, schema: { type: boolean } }
+        - { name: q, in: query, description: RENT-03 이름·별칭 검색, schema: { type: string } }
+        - { name: sort, in: query, schema: { type: string, enum: [POPULAR, PRICE_ASC], default: POPULAR } }
       responses:
         "200":
           description: OK
@@ -84,23 +213,170 @@ paths:
               schema:
                 type: array
                 items: { $ref: "#/components/schemas/ProductSummary" }
-  /products/{productId}:
+  /products/{productKey}:
     get:
-      tags: [products]
-      summary: 상품 상세 (2-3) — 상태별 기기, 기기 이력, 리뷰 요약 포함
+      tags: [catalog]
+      summary: RENT-04 상품 상세 — 요금 유형별 다음 배정 기기, AI 요약(GUIDE-02~04), 비교표
       operationId: getProduct
+      security: []
       parameters:
-        - { name: productId, in: path, required: true, schema: { type: string } }
+        - $ref: "#/components/parameters/ProductKey"
       responses:
         "200":
           description: OK
           content:
             application/json:
               schema: { $ref: "#/components/schemas/ProductDetail" }
+  /quotes:
+    post:
+      tags: [catalog]
+      summary: RENT-13 신청 전 총비용 · RENT-07 절약 리포트 · 주문 결제 요약 미리보기 (서버 계산)
+      operationId: quote
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [lines, delivery]
+              properties:
+                lines:
+                  type: array
+                  items: { $ref: "#/components/schemas/CartLine" }
+                delivery: { $ref: "#/components/schemas/DeliveryMethod" }
+                express: { type: boolean, default: false }
+                applyCoupons: { type: boolean, default: true, description: 로그인 회원이면 쓸 수 있는 쿠폰 자동 적용(MKT-07) }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Quote" }
+  /devices/{deviceCode}/history:
+    get:
+      tags: [catalog]
+      summary: RENT-14 기기 이력(QR) — 비회원도 열람
+      operationId: getDeviceHistory
+      security: []
+      parameters:
+        - { name: deviceCode, in: path, required: true, schema: { type: string, example: "D-0412" } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DeviceHistory" }
+  /products/{productKey}/waitlist:
+    post:
+      tags: [catalog]
+      summary: RENT-06 대기 명단 등록 (회원당 품목마다 1건)
+      operationId: joinWaitlist
+      parameters:
+        - $ref: "#/components/parameters/ProductKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                wantFrom: { type: string, enum: [THIS_MONTH, NEXT_MONTH, ANY] }
+                priceType:
+                  allOf: [{ $ref: "#/components/schemas/PriceType" }]
+                  description: null = 상관없음
+      responses:
+        "201":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/WaitlistEntry" }
+        "409": { $ref: "#/components/responses/Error" }
+  /guides/{slug}:
+    get:
+      tags: [catalog]
+      summary: GUIDE-01 가전 가이드 글 (발행된 글만)
+      operationId: getGuide
+      security: []
+      parameters:
+        - { name: slug, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Guide" }
+
+  # ---------------------------------------------------------------- diagnosis
+  /diagnoses:
+    post:
+      tags: [diagnosis]
+      summary: GUIDE-05 1분 진단 저장 → GUIDE-06 결과 (로그인 불필요)
+      operationId: createDiagnosis
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DiagnosisAnswers" }
+      responses:
+        "201":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Diagnosis" }
+  /diagnoses/{shareCode}:
+    get:
+      tags: [diagnosis]
+      summary: GUIDE-06 공유 링크로 결과 보기
+      operationId: getDiagnosis
+      security: []
+      parameters:
+        - { name: shareCode, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Diagnosis" }
+
+  # ---------------------------------------------------------------- cart / orders
+  /cart:
+    get:
+      tags: [orders]
+      summary: RENT-09 장바구니(꾸러미) — 회원만, 서버 저장
+      operationId: getCart
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/CartItem" }
+    put:
+      tags: [orders]
+      summary: RENT-09 · AIC-03 장바구니 전체 교체 (AI 상담 체크 상품 담기 포함)
+      operationId: replaceCart
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items: { $ref: "#/components/schemas/CartLine" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/CartItem" }
   /orders:
     post:
       tags: [orders]
-      summary: 주문 (2-4 / 3-3 꾸러미 / 7-5 쿠폰) — 꾸러미는 같은 날 받고 같은 날 반납
+      summary: RENT-09 · RENT-10 주문 생성 — 가전마다 기기 1대 15분 예약 (결제 대기)
       operationId: createOrder
       requestBody:
         required: true
@@ -108,32 +384,93 @@ paths:
           application/json:
             schema:
               type: object
-              required: [items, months, delivery, startDate]
+              required: [lines, receiveDate, delivery]
               properties:
-                items:
+                lines:
                   type: array
-                  items:
-                    type: object
-                    required: [productId, priceType, protection]
-                    properties:
-                      productId: { type: string }
-                      priceType: { $ref: "#/components/schemas/PriceType" }
-                      protection: { $ref: "#/components/schemas/ProtectionPlan" }
-                months: { type: integer, minimum: 2 }
-                startDate: { type: string, format: date }
-                delivery: { type: string, enum: [HUB_PICKUP, SCHEDULED_DELIVERY] }
-                couponIds: { type: array, items: { type: string } }
+                  minItems: 1
+                  items: { $ref: "#/components/schemas/CartLine" }
+                receiveDate: { type: string, format: date, description: 결제일+2일 이후 지정일(화·금) 또는 거점이면 아무 날 }
+                delivery: { $ref: "#/components/schemas/DeliveryMethod" }
+                address: { type: string, description: "문 앞 배송이면 필수 (성북구만)" }
+                hubId: { type: string, description: 거점 수령이면 필수 }
+                couponIds:
+                  type: array
+                  description: 생략하면 서버가 자동 선택(MKT-07). 빈 배열이면 쿠폰 안 씀
+                  items: { type: string }
       responses:
         "201":
-          description: 생성
+          description: 생성 (status=PENDING_PAYMENT, reservedUntil)
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Order" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /orders/{orderId}:
+    get:
+      tags: [orders]
+      summary: RENT-11 결제 완료 · 주문 상세
+      operationId: getOrder
+      parameters:
+        - $ref: "#/components/parameters/OrderId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Order" }
+  /orders/{orderId}/pay:
+    post:
+      tags: [orders]
+      summary: RENT-10 첫 결제 + 정기 결제 등록 (해커톤은 PG mock)
+      operationId: payOrder
+      parameters:
+        - $ref: "#/components/parameters/OrderId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [paymentMethodId]
+              properties:
+                paymentMethodId: { type: string }
+      responses:
+        "200":
+          description: 결제 완료 (status=PAID, 렌탈 생성)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Order" }
+        "410": { description: 예약 15분 만료 }
+  /orders/{orderId}/cancel:
+    post:
+      tags: [orders]
+      summary: RENT-12 주문 취소 (받는 날 전날 18:00까지, P2)
+      operationId: cancelOrder
+      parameters:
+        - $ref: "#/components/parameters/OrderId"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason: { type: string }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Order" }
+
+  # ---------------------------------------------------------------- rentals
   /rentals:
     get:
       tags: [rentals]
-      summary: 내 렌탈 목록 (4-1, 2-1 요약)
+      summary: MY-01 내 렌탈 목록
       operationId: listMyRentals
+      parameters:
+        - { name: scope, in: query, schema: { type: string, enum: [ACTIVE, PAST], default: ACTIVE } }
       responses:
         "200":
           description: OK
@@ -142,147 +479,220 @@ paths:
               schema:
                 type: array
                 items: { $ref: "#/components/schemas/Rental" }
-  /rentals/{rentalId}/extend:
-    post:
+  /rentals/{rentalId}:
+    get:
       tags: [rentals]
-      summary: 연장 (4-2) — 월 단위 또는 마무리 주 단위
-      operationId: extendRental
+      summary: 렌탈 상세
+      operationId: getRental
       parameters:
-        - { name: rentalId, in: path, required: true, schema: { type: string } }
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                months: { type: integer, minimum: 1 }
-                weeks: { type: integer, minimum: 1, maximum: 3 }
+        - $ref: "#/components/parameters/RentalId"
       responses:
         "200":
           description: OK
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Rental" }
+  /rentals/{rentalId}/received-check:
+    post:
+      tags: [rentals]
+      summary: MY-09 · DMG-02 받은 날 상태 확인 — 사진 3장(24시간 안) → AI 비교 결과 즉시 반환
+      operationId: submitReceivedCheck
+      parameters:
+        - $ref: "#/components/parameters/RentalId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [photos]
+              properties:
+                photos:
+                  type: array
+                  minItems: 3
+                  maxItems: 3
+                  items: { $ref: "#/components/schemas/PhotoInput" }
+                issueReport:
+                  type: object
+                  nullable: true
+                  description: 이상 신고 (24시간 안이면 다음 지정일 무상 교체)
+                  properties:
+                    kind: { type: string, enum: [NEW_DAMAGE, NOT_WORKING, MISSING_PART, OTHER] }
+                    memo: { type: string }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReceivedCheckResult" }
+        "410": { description: 24시간 지남 }
+  /rentals/{rentalId}/extension-options:
+    get:
+      tags: [rentals]
+      summary: MY-02 연장 가능 여부 · 금액 미리보기 (1개월 / 마무리 1주)
+      operationId: getExtensionOptions
+      parameters:
+        - $ref: "#/components/parameters/RentalId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ExtensionOptions" }
+  /rentals/{rentalId}/extensions:
+    post:
+      tags: [rentals]
+      summary: MY-02 연장 신청 — 개월(정기 결제 회차 증가) 또는 주(즉시 결제)
+      operationId: extendRental
+      parameters:
+        - $ref: "#/components/parameters/RentalId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [unit, quantity]
+              properties:
+                unit: { type: string, enum: [MONTH, WEEK] }
+                quantity: { type: integer, minimum: 1, maximum: 3 }
+                protection:
+                  allOf: [{ $ref: "#/components/schemas/ProtectionPlan" }]
+                  description: 연장 때만 보장 단계 변경 가능 (SYS-05)
+                couponId: { type: string, description: 개월 연장만 }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Rental" }
+        "422": { $ref: "#/components/responses/Error" }
+  /rentals/{rentalId}/swap:
+    post:
+      tags: [rentals]
+      summary: MY-03 교체 (P1) — 맞교환, 종료일 유지, 다음 회차부터 새 요금
+      operationId: swapRental
+      parameters:
+        - $ref: "#/components/parameters/RentalId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [line, swapDate]
+              properties:
+                line: { $ref: "#/components/schemas/CartLine" }
+                swapDate: { type: string, format: date }
+      responses:
+        "201":
+          description: 새 렌탈
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Rental" }
   /rentals/{rentalId}/return:
     post:
       tags: [rentals]
-      summary: 반납 신청 (4-4) — 반납 검수(RETURN inspection)를 함께 생성
+      summary: MY-04 · DMG-03 반납 신청 — 회수 날짜 + 사진 3장(필수) → AI 예비 판정 생성
       operationId: requestReturn
       parameters:
-        - { name: rentalId, in: path, required: true, schema: { type: string } }
+        - $ref: "#/components/parameters/RentalId"
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              required: [pickupDate]
+              required: [pickupDate, place, photos]
               properties:
                 pickupDate: { type: string, format: date }
+                express: { type: boolean, default: false, description: "지정일 외 급행 +10,000원" }
+                place: { type: string, enum: [DOOR, HUB] }
                 address: { type: string }
+                photos:
+                  type: array
+                  minItems: 3
+                  maxItems: 3
+                  items: { $ref: "#/components/schemas/PhotoInput" }
       responses:
         "200":
-          description: OK
+          description: 반납 신청됨 + 예비 판정
           content:
             application/json:
-              schema: { $ref: "#/components/schemas/Inspection" }
-  /inspections:
+              schema:
+                type: object
+                properties:
+                  rental: { $ref: "#/components/schemas/Rental" }
+                  judgement: { $ref: "#/components/schemas/Judgement" }
+                  remainingInstallments:
+                    type: integer
+                    description: 조기 반납이어도 이어지는 남은 결제 회차 (환불 없음)
+  /rentals/{rentalId}/review:
     post:
-      tags: [inspections]
-      summary: 검수 생성 (8-1 출고 / 8-2 받은 날)
-      operationId: createInspection
+      tags: [rentals]
+      summary: MY-07 리뷰 작성 (P1, 회수 완료 렌탈마다 1번)
+      operationId: writeReview
+      parameters:
+        - $ref: "#/components/parameters/RentalId"
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              required: [stage, deviceId]
+              required: [rating]
               properties:
-                stage: { $ref: "#/components/schemas/InspectionStage" }
-                deviceId: { type: string }
-                rentalId: { type: string }
-      responses:
-        "201":
-          description: 생성
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/Inspection" }
-  /inspections/{inspectionId}/photos:
-    post:
-      tags: [inspections]
-      summary: 면별 사진 업로드
-      operationId: uploadInspectionPhoto
-      parameters:
-        - { name: inspectionId, in: path, required: true, schema: { type: string } }
-      requestBody:
-        required: true
-        content:
-          multipart/form-data:
-            schema:
-              type: object
-              required: [side, file]
-              properties:
-                side: { $ref: "#/components/schemas/PhotoSide" }
-                file: { type: string, format: binary }
-      responses:
-        "201":
-          description: OK
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/InspectionPhoto" }
-  /inspections/{inspectionId}/analyze:
-    post:
-      tags: [inspections]
-      summary: AI 비교 실행 → 예비 판정 (8-2, 8-3, 8-4). 내부에서 ai/vision 호출
-      operationId: analyzeInspection
-      parameters:
-        - { name: inspectionId, in: path, required: true, schema: { type: string } }
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/Inspection" }
-  /inspections/{inspectionId}:
-    get:
-      tags: [inspections]
-      summary: 검수 결과 조회 (기준 사진·받은 날 사진·결과 포함)
-      operationId: getInspection
-      parameters:
-        - { name: inspectionId, in: path, required: true, schema: { type: string } }
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/Inspection" }
-  /inspections/{inspectionId}/dispute:
-    post:
-      tags: [inspections]
-      summary: 이의 신청 (결과 후 48시간 이내)
-      operationId: disputeInspection
-      parameters:
-        - { name: inspectionId, in: path, required: true, schema: { type: string } }
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [reason]
-              properties:
+                rating: { type: integer, minimum: 1, maximum: 5 }
+                content: { type: string }
                 reason: { type: string }
       responses:
-        "204": { description: 접수 }
-  /admin/inspections:
+        "201": { description: OK }
+
+  # ---------------------------------------------------------------- judgements
+  /judgements/{judgementId}:
     get:
-      tags: [admin]
-      summary: 판정 대기 목록 (8-5)
-      operationId: listPendingInspections
+      tags: [judgements]
+      summary: MY-05 · DMG-03 · DMG-04 파손 판정 조회 (예비/최종, 사진 3단 비교, 단계별 부담)
+      operationId: getJudgement
       parameters:
-        - { name: status, in: query, schema: { $ref: "#/components/schemas/InspectionStatus" } }
+        - $ref: "#/components/parameters/JudgementId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Judgement" }
+  /judgements/{judgementId}/dispute:
+    post:
+      tags: [judgements]
+      summary: MY-05 이의 신청 (최종 판정 알림 후 48시간 안) — 재판정 3영업일, 그동안 청구 정지
+      operationId: disputeJudgement
+      parameters:
+        - $ref: "#/components/parameters/JudgementId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [content]
+              properties:
+                content: { type: string }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Judgement" }
+        "410": { description: 이의 기간 지남 }
+
+  # ---------------------------------------------------------------- school
+  /schools:
+    get:
+      tags: [school]
+      summary: MKT-01 학교 목록 · 목표 현황판 · MKT-06 학교 페이지 요약
+      operationId: listSchools
+      security: []
       responses:
         "200":
           description: OK
@@ -290,23 +700,478 @@ paths:
             application/json:
               schema:
                 type: array
-                items: { $ref: "#/components/schemas/Inspection" }
-  /admin/inspections/{inspectionId}/verdict:
+                items: { $ref: "#/components/schemas/School" }
+  /school-verifications/email:
     post:
-      tags: [admin]
-      summary: 운영자 최종 판정 (8-5). AI와 다르면 사유 필수 → 재학습 데이터
-      operationId: submitVerdict
-      parameters:
-        - { name: inspectionId, in: path, required: true, schema: { type: string } }
+      tags: [school]
+      summary: MKT-02 학교 메일 인증 코드 보내기 (등록 도메인만, 10분 유효)
+      operationId: sendSchoolEmailCode
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              required: [operatingTest, findings]
+              required: [schoolId, email]
+              properties:
+                schoolId: { type: string }
+                email: { type: string, format: email }
+                inviteCode: { type: string, description: 친구 초대 코드(선택) }
+                utm: { type: string, description: 유입 경로 (MKT-01) }
+      responses:
+        "202":
+          description: 발송
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SchoolVerification" }
+  /school-verifications/{verificationId}/confirm:
+    post:
+      tags: [school]
+      summary: MKT-02 → MKT-03 코드 확인 → 인증 완료 + 쿠폰 2장 자동 발급
+      operationId: confirmSchoolEmailCode
+      parameters:
+        - { name: verificationId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code]
+              properties:
+                code: { type: string, pattern: '^\d{6}$' }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SchoolWelcome" }
+  /school-verifications/student-card:
+    post:
+      tags: [school]
+      summary: MKT-02 학생증 사진으로 신청 (운영자 24시간 안 확인, 확인 후 사진 삭제)
+      operationId: submitStudentCard
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [schoolId, photoUrl]
+              properties:
+                schoolId: { type: string }
+                photoUrl: { type: string }
+                inviteCode: { type: string }
+      responses:
+        "202":
+          description: 확인 대기
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SchoolVerification" }
+  /me/invite:
+    get:
+      tags: [school]
+      summary: MKT-04 내 초대 코드 · 초대한 친구 수 · 받은 쿠폰 (P1)
+      operationId: getMyInvite
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code: { type: string, example: "SS-K7Q2" }
+                  invitedCount: { type: integer }
+                  rewardKrw: { type: integer }
+
+  # ---------------------------------------------------------------- buyback
+  /buyback/quotes:
+    post:
+      tags: [buyback]
+      summary: SELL-02 예상 매입가 (부록 C-9 계산식, AI 안 씀, 7일 유효)
+      operationId: quoteBuyback
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [productKey, purchasedAt, condition, photos]
+              properties:
+                productKey: { type: string }
+                purchasedAt: { type: string, description: "구매 연월 YYYY-MM" }
+                condition: { $ref: "#/components/schemas/BuybackCondition" }
+                photos:
+                  type: array
+                  minItems: 3
+                  maxItems: 3
+                  items: { $ref: "#/components/schemas/PhotoInput" }
+      responses:
+        "201":
+          description: 견적 (매입 불가면 eligible=false + 사유)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Buyback" }
+  /buyback/{buybackId}/pickup:
+    post:
+      tags: [buyback]
+      summary: SELL-03 수거 예약 (무료, 수거 전날 18:00까지 변경·취소)
+      operationId: scheduleBuybackPickup
+      parameters:
+        - $ref: "#/components/parameters/BuybackId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [pickupDate, address, bankAccount]
+              properties:
+                pickupDate: { type: string, format: date }
+                address: { type: string }
+                bankAccount:
+                  type: object
+                  properties:
+                    bank: { type: string }
+                    number: { type: string }
+                    holder: { type: string }
+                leavingReason: { type: string, enum: [GRADUATION, MILITARY, STUDY_ABROAD, MOVING, OTHER] }
+                sameDayAsRentalReturnId: { type: string, description: MY-06 회수일과 같은 날 수거 }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Buyback" }
+  /buyback/{buybackId}:
+    get:
+      tags: [buyback]
+      summary: SELL-03 매입 진행 · 정산 완료 화면
+      operationId: getBuyback
+      parameters:
+        - $ref: "#/components/parameters/BuybackId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Buyback" }
+  /buyback/{buybackId}/consent:
+    post:
+      tags: [buyback]
+      summary: SELL-03 최종가가 범위 밖일 때 고객 동의 (거절하면 무료 반송)
+      operationId: consentBuyback
+      parameters:
+        - $ref: "#/components/parameters/BuybackId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [accept]
+              properties:
+                accept: { type: boolean }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Buyback" }
+
+  # ---------------------------------------------------------------- consult
+  /consultations:
+    post:
+      tags: [consult]
+      summary: AIC-01 상담 시작 (1분 진단에서 오면 diagnosisShareCode로 답 미리 채움)
+      operationId: startConsultation
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                diagnosisShareCode: { type: string }
+      responses:
+        "201":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Consultation" }
+  /consultations/{consultationId}/messages:
+    post:
+      tags: [consult]
+      summary: AIC-02 대화 · 맞춤 추천 (최대 30메시지). 서버가 대여 가능 기기만 거르고 요금 계산
+      operationId: sendConsultationMessage
+      parameters:
+        - { name: consultationId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [text]
+              properties:
+                text: { type: string }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Consultation" }
+
+  # ---------------------------------------------------------------- uploads
+  /uploads/blob:
+    post:
+      tags: [uploads]
+      summary: Vercel Blob client upload 토큰 발급 (@vercel/blob handleUpload). 브라우저가 직접 업로드 후 받은 URL을 다른 API에 보냄
+      operationId: blobUpload
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: "@vercel/blob/client upload()가 보내는 본문 그대로"
+      responses:
+        "200":
+          description: "@vercel/blob handleUpload 응답"
+          content:
+            application/json:
+              schema: { type: object }
+
+  # ---------------------------------------------------------------- admin
+  /admin/intake:
+    get:
+      tags: [admin]
+      summary: ADM-01 입고 · 검수 · 등급 목록 (경로 필터)
+      operationId: listIntake
+      parameters:
+        - { name: route, in: query, schema: { type: string, enum: [BUYBACK, RETURN, NEW] } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/AdminDevice" }
+  /admin/devices/{deviceId}/grade:
+    post:
+      tags: [admin]
+      summary: ADM-01 등급 · 요금 유형 (자동 판정, 바꾸면 사유 필수)
+      operationId: gradeDevice
+      parameters:
+        - $ref: "#/components/parameters/DeviceId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [grade, priceType]
+              properties:
+                grade: { $ref: "#/components/schemas/Grade" }
+                priceType: { $ref: "#/components/schemas/PriceType" }
+                overrideReason: { type: string }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminDevice" }
+  /admin/devices/{deviceId}/work-logs:
+    post:
+      tags: [admin]
+      summary: ADM-10 세척 · 점검 체크리스트 기록 (작업자 직접 체크만 이력에)
+      operationId: addWorkLog
+      parameters:
+        - $ref: "#/components/parameters/DeviceId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [kind, passed]
+              properties:
+                kind: { type: string, enum: [CLEANING, CONSUMABLE, OPERATION_CHECK, ELECTRICAL_SAFETY, REPAIR] }
+                passed: { type: boolean }
+                memo: { type: string }
+                photoUrls: { type: array, items: { type: string } }
+      responses:
+        "201": { description: OK }
+  /admin/products/drafts:
+    post:
+      tags: [admin]
+      summary: ADM-04 상품 등록 AI 초안 (세척 후 사진 → 품목·등급·설명 채움, 담당자 확인 전 등록 안 함)
+      operationId: draftDevice
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [photoUrls]
+              properties:
+                deviceId: { type: string }
+                photoUrls: { type: array, items: { type: string } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  aiGenerated: { type: boolean, enum: [true] }
+                  productKey: { type: string }
+                  source: { $ref: "#/components/schemas/DeviceSource" }
+                  grade: { $ref: "#/components/schemas/Grade" }
+                  priceType: { $ref: "#/components/schemas/PriceType" }
+                  consumables: { type: string }
+                  description: { type: string }
+                  valueConversionDate: { type: string, description: 출시 연월 + 36개월 }
+  /admin/devices/{deviceId}/register:
+    post:
+      tags: [admin]
+      summary: ADM-04 담당자 확인 후 등록 → 대여 가능 (체크리스트 전부 통과 필요)
+      operationId: registerDevice
+      parameters:
+        - $ref: "#/components/parameters/DeviceId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [productKey, grade, priceType]
+              properties:
+                productKey: { type: string }
+                grade: { $ref: "#/components/schemas/Grade" }
+                priceType: { $ref: "#/components/schemas/PriceType" }
+                description: { type: string }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminDevice" }
+  /admin/outbound/{deviceId}:
+    post:
+      tags: [admin]
+      summary: DMG-01 출고 검사 · AI 기준 사진 (6면) → 기존 흠집 기록 · 상태 점수
+      operationId: outboundInspection
+      parameters:
+        - $ref: "#/components/parameters/DeviceId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [photos]
+              properties:
+                rentalId: { type: string }
+                photos:
+                  type: array
+                  minItems: 6
+                  maxItems: 6
+                  items: { $ref: "#/components/schemas/PhotoInput" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OutboundInspection" }
+  /admin/outbound/{deviceId}/confirm:
+    post:
+      tags: [admin]
+      summary: DMG-01 출고 확정 (6면 + 체크리스트 통과) → 기기 이력 공개
+      operationId: confirmOutbound
+      parameters:
+        - $ref: "#/components/parameters/DeviceId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OutboundInspection" }
+  /admin/deliveries:
+    get:
+      tags: [admin]
+      summary: ADM-09 배송 · 회수 일정 (지정일별, 주소별 묶음)
+      operationId: listDeliveries
+      parameters:
+        - { name: date, in: query, required: true, schema: { type: string, format: date } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/DeliveryTask" }
+  /admin/deliveries/{taskId}/status:
+    post:
+      tags: [admin]
+      summary: ADM-09 배송 작업 상태 (출발은 출고 확정 후에만, 거점 입고 시 보관함 비밀번호 문자)
+      operationId: updateDeliveryStatus
+      parameters:
+        - { name: taskId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: { type: string, enum: [DEPARTED, DELIVERED, HUB_STORED, PICKED_UP, FAILED] }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DeliveryTask" }
+  /admin/judgements:
+    get:
+      tags: [admin]
+      summary: DMG-05 · ADM-03 판정 대기 목록 (신뢰도 낮음 먼저) + AI 성능 지표
+      operationId: listJudgements
+      parameters:
+        - { name: status, in: query, schema: { $ref: "#/components/schemas/JudgementStatus" } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: "#/components/schemas/Judgement" }
+                  aiMetrics: { $ref: "#/components/schemas/AiMetrics" }
+  /admin/judgements/{judgementId}/finalize:
+    post:
+      tags: [admin]
+      summary: DMG-05 · ADM-03 운영자 최종 판정 → 고객 알림(48시간 이의). AI와 다르면 사유 필수 → 재학습 데이터
+      operationId: finalizeJudgement
+      parameters:
+        - $ref: "#/components/parameters/JudgementId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [operatingTest, finalClass, findings]
               properties:
                 operatingTest: { type: string, enum: [PASS, FAIL] }
+                finalClass: { $ref: "#/components/schemas/DamageClass" }
                 repairCostKrw: { type: integer }
                 findings:
                   type: array
@@ -316,169 +1181,799 @@ paths:
                     properties:
                       findingId: { type: string }
                       finalClass: { $ref: "#/components/schemas/DamageClass" }
+                      lengthMm: { type: number, description: 운영자가 잰 실제 길이 (재학습용) }
                       overrideReason: { type: string }
+                addedFindings:
+                  type: array
+                  description: AI가 놓친 흠 (재학습용)
+                  items: { $ref: "#/components/schemas/FindingInput" }
+      responses:
+        "200":
+          description: OK (status=FINAL_NOTIFIED, customerChargeKrw 자동 계산)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Judgement" }
+        "400": { $ref: "#/components/responses/Error" }
+  /admin/judgements/{judgementId}/redecide:
+    post:
+      tags: [admin]
+      summary: ADM-03 이의 재판정 (3영업일 안)
+      operationId: redecideJudgement
+      parameters:
+        - $ref: "#/components/parameters/JudgementId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [finalClass, result]
+              properties:
+                finalClass: { $ref: "#/components/schemas/DamageClass" }
+                repairCostKrw: { type: integer }
+                result: { type: string }
+      responses:
+        "200":
+          description: OK (status=CONFIRMED)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Judgement" }
+  /admin/buyback/{buybackId}/inspect:
+    post:
+      tags: [admin]
+      summary: ADM-02 매입 검수 · 최종가 (범위 밖이면 사유 + 고객 동의 대기)
+      operationId: inspectBuyback
+      parameters:
+        - $ref: "#/components/parameters/BuybackId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [result]
+              properties:
+                result: { type: string, enum: [ACCEPT, REJECT] }
+                grade: { $ref: "#/components/schemas/Grade" }
+                finalPriceKrw: { type: integer }
+                checks:
+                  type: object
+                  properties:
+                    operation: { type: boolean }
+                    electricalSafety: { type: boolean }
+                    cleanable: { type: boolean }
+                photoUrls: { type: array, items: { type: string } }
+                reason: { type: string }
       responses:
         "200":
           description: OK
           content:
             application/json:
-              schema: { $ref: "#/components/schemas/Inspection" }
+              schema: { $ref: "#/components/schemas/Buyback" }
+  /admin/buyback/{buybackId}/pay:
+    post:
+      tags: [admin]
+      summary: ADM-02 입금 완료 → 기기가 정비 중 상태로 재고 입고
+      operationId: payBuyback
+      parameters:
+        - $ref: "#/components/parameters/BuybackId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Buyback" }
+  /admin/dashboard:
+    get:
+      tags: [admin]
+      summary: ADM-05 가동률 · 대기 명단 대시보드 (1년차 KPI + 품목별 확보 신호)
+      operationId: getDashboard
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Dashboard" }
+  /admin/school-campaigns:
+    get:
+      tags: [admin]
+      summary: ADM-08 학교 캠페인 지표 · 학생증 확인 대기 (P1)
+      operationId: getSchoolCampaigns
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { type: object }
+  /admin/school-verifications/{verificationId}/review:
+    post:
+      tags: [admin]
+      summary: ADM-08 학생증 승인 · 반려 (처리 후 사진 삭제)
+      operationId: reviewStudentCard
+      parameters:
+        - { name: verificationId, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [approve]
+              properties:
+                approve: { type: boolean }
+                rejectReason: { type: string }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SchoolVerification" }
+
 components:
+  securitySchemes:
+    bearer:
+      type: http
+      scheme: bearer
+  parameters:
+    ProductKey:
+      { name: productKey, in: path, required: true, schema: { type: string, enum: [food-waste-disposer, mini-dryer, dehumidifier, humidifier] } }
+    OrderId: { name: orderId, in: path, required: true, schema: { type: string } }
+    RentalId: { name: rentalId, in: path, required: true, schema: { type: string } }
+    JudgementId: { name: judgementId, in: path, required: true, schema: { type: string } }
+    BuybackId: { name: buybackId, in: path, required: true, schema: { type: string } }
+    DeviceId: { name: deviceId, in: path, required: true, schema: { type: string } }
+  responses:
+    Error:
+      description: 오류
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
   schemas:
-    Category:
+    Error:
+      type: object
+      properties:
+        code: { type: string, example: OTP_COOLDOWN }
+        message: { type: string, description: 화면에 그대로 보여줄 수 있는 문장 }
+
+    # ---------- enums (packages/shared/src/types/enums.ts 와 1:1)
+    Category: { type: string, enum: [KITCHEN, LAUNDRY, SEASONAL, AIR], description: "주방 · 세탁·건조 · 계절 · 가습·공기" }
+    PriceType: { type: string, enum: [STANDARD, VALUE], description: 일반형 · 실속형 }
+    DeviceSource: { type: string, enum: [NEW, BUYBACK] }
+    Grade: { type: string, enum: [A, B] }
+    ProtectionPlan: { type: string, enum: [BASIC, SAFE, FULL], description: "기본 월 0 · 안심 월 1,000 · 완전 안심 월 2,000 (기기 1대당)" }
+    DeliveryMethod: { type: string, enum: [DOOR, HUB], description: 문 앞 지정일(화·금) · 거점 수령 }
+    OrderStatus: { type: string, enum: [PENDING_PAYMENT, PAID, CANCELED, EXPIRED] }
+    RentalStatus:
       type: string
-      enum: [SEASONAL, LAUNDRY, KITCHEN, ELECTRONICS, HEATING]
-    PriceType:
+      enum: [PREPARING, SHIPPING, AT_HUB, IN_USE, RETURN_REQUESTED, PICKUP_SCHEDULED, PICKED_UP, JUDGING, JUDGED, ENDED, CANCELED, SWAPPED]
+    DeviceStatus:
       type: string
-      description: 일반형(STANDARD) / 실속형(VALUE)
-      enum: [STANDARD, VALUE]
-    DeviceSource:
+      enum: [INTAKE, MAINTENANCE, AVAILABLE, RESERVED, RENTED, RETRIEVING, INSPECTING, SOLD, DISPOSED]
+    BuybackStatus:
       type: string
-      enum: [NEW, BUYBACK, USED]
-    ProtectionPlan:
+      enum: [QUOTED, PICKUP_SCHEDULED, PICKED_UP, INSPECTING, AWAITING_CONSENT, PAID, REJECTED, QUOTE_EXPIRED, CANCELED]
+    JudgementStatus:
       type: string
-      description: 기본(BASIC) 월 0원 / 안심(SAFE) 월 1,000원 / 완전 안심(FULL) 월 2,000원
-      enum: [BASIC, SAFE, FULL]
-    InspectionStage:
-      type: string
-      description: 출고(OUTBOUND, 운영자 6면) / 받은 날(RECEIVED, 고객) / 반납(RETURN, 고객)
-      enum: [OUTBOUND, RECEIVED, RETURN]
-    InspectionStatus:
-      type: string
-      enum: [CAPTURING, ANALYZING, PRELIMINARY, NEEDS_REVIEW, FINAL, DISPUTED]
-    PhotoSide:
-      type: string
-      enum: [FRONT, LEFT, RIGHT, BACK, TOP, OPERATING]
+      enum: [PRELIMINARY, FINAL_NOTIFIED, DISPUTED, CONFIRMED, CHARGED]
+      description: "AI 예비 → 운영자 최종(알림, 이의 48시간) → 이의 중 → 확정 → 청구 완료"
+    WaitlistStatus: { type: string, enum: [WAITING, NOTIFIED, PAID, TIMED_OUT, CANCELED] }
+    CouponKind: { type: string, enum: [FIRST_MONTH_50, REFERRAL, FREE_DELIVERY, EXTENSION] }
+    MemberCouponStatus: { type: string, enum: [ISSUED, USED, EXPIRED] }
+    SchoolVerificationStatus: { type: string, enum: [CODE_SENT, VERIFIED, CARD_PENDING, REJECTED] }
+    PhotoPurpose: { type: string, enum: [OUTBOUND, RECEIVED, RETURN, BUYBACK] }
+    PhotoSide: { type: string, enum: [FRONT, LEFT, RIGHT, BACK, TOP, OPERATING], description: "고객 '옆면'은 LEFT (확정 전 가정)" }
     DamageClass:
       type: string
-      description: 생활 마모(WEAR) / 과실 파손(FAULT) / 분실·고의(LOSS_OR_INTENTIONAL) / 변화 없음(NONE)
-      enum: [NONE, WEAR, FAULT, LOSS_OR_INTENTIONAL]
-    User:
+      enum: [NONE, NATURAL_FAILURE, WEAR, CONSUMABLE, FAULT, LOSS, INTENTIONAL]
+      description: "C-7 원인: 변화 없음 · 자연 고장 · 생활 마모 · 소모품 · 과실 파손 · 분실·도난 · 고의 훼손"
+    Confidence: { type: string, enum: [HIGH, MEDIUM, LOW] }
+    BuybackCondition: { type: string, enum: [LIKE_NEW, WEAR, VISIBLE_DAMAGE], description: 거의 새것 · 생활 흠집 · 눈에 띄는 흠집 }
+    Agreement: { type: string, enum: [TERMS, PRIVACY, DAMAGE_POLICY, MARKETING] }
+
+    # ---------- 회원 · 학교
+    Member:
       type: object
       properties:
         id: { type: string }
         name: { type: string }
-        phoneVerified: { type: boolean }
-        schoolId: { type: string, nullable: true }
-    ProductSummary:
+        phoneMasked: { type: string, example: "010-****-5678" }
+        isAdmin: { type: boolean }
+        neighborhood: { type: string, nullable: true }
+        stayPlan: { type: string, nullable: true }
+        school:
+          type: object
+          nullable: true
+          properties:
+            id: { type: string }
+            name: { type: string }
+            verifiedAt: { type: string, format: date-time }
+        hasRentalHistory: { type: boolean, description: 매입 우대(+5%p) 대상 }
+    School:
       type: object
       properties:
         id: { type: string }
-        name: { type: string, example: "제습기 10L" }
+        name: { type: string, example: 성신여대 }
+        abbreviation: { type: string, example: SS }
+        verifiedCount: { type: integer }
+        goal: { type: integer, example: 300 }
+        achievedStages: { type: array, items: { type: integer }, example: [100, 200] }
+        nextStage: { type: integer, nullable: true }
+        nearestHub: { type: string, nullable: true }
+        seasonBonusActive: { type: boolean }
+    SchoolVerification:
+      type: object
+      properties:
+        id: { type: string }
+        schoolId: { type: string }
+        method: { type: string, enum: [EMAIL, STUDENT_CARD] }
+        status: { $ref: "#/components/schemas/SchoolVerificationStatus" }
+        expiresAt: { type: string, format: date-time, nullable: true }
+        rejectReason: { type: string, nullable: true }
+    SchoolWelcome:
+      type: object
+      description: 7-3 인증 완료 화면
+      properties:
+        school: { $ref: "#/components/schemas/School" }
+        verifiedRank: { type: integer, example: 213, description: 성신여대 213번째 }
+        remainingToNextStage: { type: integer, nullable: true }
+        coupons: { type: array, items: { $ref: "#/components/schemas/MemberCoupon" } }
+        inviteCode: { type: string }
+    MemberCoupon:
+      type: object
+      properties:
+        id: { type: string }
+        kind: { $ref: "#/components/schemas/CouponKind" }
+        label: { type: string }
+        amountRule: { type: string, example: "첫 달 요금 50%, 최대 10,000원" }
+        expiresAt: { type: string, format: date-time }
+        status: { $ref: "#/components/schemas/MemberCouponStatus" }
+    PaymentMethod:
+      type: object
+      properties:
+        id: { type: string }
+        provider: { type: string, enum: [KAKAOPAY, TOSSPAY, CARD] }
+        display: { type: string, example: "신한 •••• 6411" }
+        isDefault: { type: boolean }
+
+    # ---------- 카탈로그
+    ProductSummary:
+      type: object
+      properties:
+        key: { type: string, example: dehumidifier }
+        name: { type: string, example: 제습기 }
         category: { $ref: "#/components/schemas/Category" }
-        monthlyFrom: { type: integer, example: 10000 }
+        imageUrl: { type: string }
+        monthlyFromKrw: { type: integer, description: "실속형 있으면 실속형, 없으면 일반형 (RENT-01)", example: 10000 }
+        hasValueTier: { type: boolean }
         availableCount: { type: integer }
         waitlistCount: { type: integer }
-        imageUrl: { type: string }
+        sources: { type: array, items: { $ref: "#/components/schemas/DeviceSource" } }
+    PriceOption:
+      type: object
+      properties:
+        priceType: { $ref: "#/components/schemas/PriceType" }
+        monthlyKrw: { type: integer }
+        available: { type: boolean }
+        nextDevice:
+          allOf: [{ $ref: "#/components/schemas/DeviceBrief" }]
+          description: "다음에 배정될 기기 = 대여 가능 중 입고 연월이 가장 오래된 것 (C-1)"
     ProductDetail:
       allOf:
         - $ref: "#/components/schemas/ProductSummary"
         - type: object
           properties:
+            officialPriceKrw: { type: integer }
+            options: { type: array, items: { $ref: "#/components/schemas/PriceOption" } }
+            monthOptions: { type: array, items: { type: integer }, example: [2, 3, 4, 6] }
+            shortTermFirstMonthKrw: { type: integer, nullable: true, description: "음식물 처리기 4개월 미만 첫 달 20,000원" }
+            specs:
+              type: object
+              additionalProperties: { type: string }
+              example: { 방 크기: "원룸 5~8평", 한 달 전기요금: "약 4,000원", 용량: "10L" }
+            consumables: { type: string, nullable: true }
+            aiSummary: { $ref: "#/components/schemas/ProductAiSummary" }
+            compare: { $ref: "#/components/schemas/CompareTable" }
+    ProductAiSummary:
+      type: object
+      description: GUIDE-02 · GUIDE-04 (주 1회 재계산, AI 생성)
+      properties:
+        aiGenerated: { type: boolean, enum: [true] }
+        reviewCount: { type: integer }
+        reasons:
+          type: array
+          maxItems: 4
+          items:
+            type: object
+            properties:
+              label: { type: string }
+              ratio: { type: number }
+        pros: { type: string }
+        cons: { type: string }
+        bestFor: { type: string }
+        quote: { type: string, description: 대표 후기 한 줄 (원문 그대로) }
+        computedAt: { type: string, format: date-time }
+    CompareTable:
+      type: object
+      description: "GUIDE-03 — 숫자는 서버, AI는 recommendation 문장만"
+      properties:
+        columns:
+          type: array
+          items:
+            type: object
+            properties:
+              label: { type: string, example: "10L 일반형" }
+              productKey: { type: string, nullable: true }
+              priceType:
+                allOf: [{ $ref: "#/components/schemas/PriceType" }]
+        rows:
+          type: array
+          items:
+            type: object
+            properties:
+              label: { type: string, example: 월 요금 }
+              values: { type: array, items: { type: string } }
+        recommendation: { type: string, description: AI 한 줄 }
+    DeviceBrief:
+      type: object
+      properties:
+        code: { type: string, example: D-0412 }
+        source: { $ref: "#/components/schemas/DeviceSource" }
+        grade: { $ref: "#/components/schemas/Grade" }
+        acquiredMonth: { type: string, example: "2025-04" }
+        usedFor: { type: string, example: "1년 7개월" }
+    DeviceHistory:
+      type: object
+      properties:
+        device: { $ref: "#/components/schemas/DeviceBrief" }
+        productKey: { type: string }
+        releasedMonth: { type: string, example: "2024-03" }
+        outboundPhotos: { type: array, items: { $ref: "#/components/schemas/Photo" } }
+        preexistingFindings: { type: array, items: { $ref: "#/components/schemas/Finding" } }
+        lastCleanedAt: { type: string, format: date, nullable: true }
+        lastCheck:
+          type: object
+          nullable: true
+          properties:
+            date: { type: string, format: date }
+            passed: { type: boolean }
+        repairs:
+          type: array
+          items:
+            type: object
+            properties:
+              date: { type: string, format: date }
+              memo: { type: string }
+    Guide:
+      type: object
+      properties:
+        slug: { type: string }
+        title: { type: string }
+        productKey: { type: string }
+        aiDraftReviewed: { type: boolean, description: "AI 초안 · 운영자 검수 표시" }
+        publishedAt: { type: string, format: date-time }
+        readMinutes: { type: integer }
+        aiSummary: { $ref: "#/components/schemas/ProductAiSummary" }
+        compare: { $ref: "#/components/schemas/CompareTable" }
+        costConclusion:
+          type: object
+          properties:
+            buyNewKrw: { type: integer }
+            rent4MonthsKrw: { type: integer }
+            savingKrw: { type: integer }
+        related:
+          type: array
+          items:
+            type: object
+            properties:
+              slug: { type: string }
+              title: { type: string }
+    WaitlistEntry:
+      type: object
+      properties:
+        id: { type: string }
+        productKey: { type: string }
+        position: { type: integer }
+        status: { $ref: "#/components/schemas/WaitlistStatus" }
+        holdUntil: { type: string, format: date-time, nullable: true }
+
+    # ---------- 진단 · 상담
+    DiagnosisAnswers:
+      type: object
+      required: [roomSize, laundry, stay, budget]
+      properties:
+        roomSize: { type: string, enum: [STUDIO_5_8, TWO_ROOM_PLUS] }
+        laundry: { type: string, enum: [ROOM_RACK, BATHROOM, COIN_LAUNDRY, HAS_DRYER] }
+        stay: { type: string, enum: [M2_3, M4_6, Y1_PLUS, LEAVING_SOON] }
+        budget: { type: string, enum: [UNDER_30K, UNDER_50K, OVER_50K] }
+    Diagnosis:
+      type: object
+      properties:
+        shareCode: { type: string }
+        answers: { $ref: "#/components/schemas/DiagnosisAnswers" }
+        typeName: { type: string, example: 장마철 뽀송 지킴이형 }
+        bundle: { type: array, items: { $ref: "#/components/schemas/CartLine" } }
+        buyNewKrw: { type: integer }
+        rentKrw: { type: integer }
+    Consultation:
+      type: object
+      properties:
+        id: { type: string }
+        messages:
+          type: array
+          maxItems: 30
+          items:
+            type: object
+            properties:
+              role: { type: string, enum: [USER, AI] }
+              text: { type: string }
+              quickReplies: { type: array, items: { type: string } }
+              at: { type: string, format: date-time }
+        conditions:
+          type: object
+          properties:
+            purpose: { type: string }
+            startDate: { type: string, format: date }
+            endDate: { type: string, format: date }
+            monthlyBudgetKrw: { type: integer }
+            roomSize: { type: string }
+            priorities: { type: array, items: { type: string } }
+        recommendation:
+          type: object
+          nullable: true
+          properties:
+            aiGenerated: { type: boolean, enum: [true] }
+            items:
+              type: array
+              maxItems: 3
+              items:
+                type: object
+                properties:
+                  line: { $ref: "#/components/schemas/CartLine" }
+                  reason: { type: string }
+                  monthlyKrw: { type: integer }
+                  device: { $ref: "#/components/schemas/DeviceBrief" }
+            totalKrw: { type: integer }
+            buyNewKrw: { type: integer }
+            noMatchHint: { type: string, nullable: true, description: 맞는 게 없을 때 바꿀 조건 + 대기 명단 안내 }
+
+    # ---------- 주문 · 결제
+    CartLine:
+      type: object
+      required: [productKey, priceType, months, protection]
+      properties:
+        productKey: { type: string, example: dehumidifier }
+        priceType: { $ref: "#/components/schemas/PriceType" }
+        months: { type: integer, enum: [2, 3, 4, 6] }
+        protection: { $ref: "#/components/schemas/ProtectionPlan" }
+    CartItem:
+      allOf:
+        - $ref: "#/components/schemas/CartLine"
+        - type: object
+          properties:
+            id: { type: string }
+            productName: { type: string }
+            monthlyKrw: { type: integer }
+            available: { type: boolean }
+    Quote:
+      type: object
+      description: 부록 C-3 · C-4 · C-6 서버 계산 결과
+      properties:
+        lines:
+          type: array
+          items:
+            type: object
+            properties:
+              line: { $ref: "#/components/schemas/CartLine" }
+              monthlyKrw: { type: integer }
+              firstMonthKrw: { type: integer }
+              rentalTotalKrw: { type: integer }
+              protectionTotalKrw: { type: integer }
+              savingKrw: { type: integer, description: RENT-07 공식몰가 − 렌탈료 합계 }
+        deliveryFeeKrw: { type: integer }
+        totalCostKrw: { type: integer, description: RENT-13 렌탈료 합계 + 배송비 + 보장 합계 (쿠폰 제외) }
+        discounts:
+          type: array
+          items:
+            type: object
+            properties:
+              couponId: { type: string }
+              kind: { $ref: "#/components/schemas/CouponKind" }
+              amountKrw: { type: integer }
+        payTodayKrw: { type: integer }
+        monthlyFromSecondKrw: { type: integer }
+    Order:
+      type: object
+      properties:
+        id: { type: string }
+        orderNo: { type: string, example: R-20261106-0001 }
+        status: { $ref: "#/components/schemas/OrderStatus" }
+        reservedUntil: { type: string, format: date-time, nullable: true }
+        receiveDate: { type: string, format: date }
+        delivery: { $ref: "#/components/schemas/DeliveryMethod" }
+        quote: { $ref: "#/components/schemas/Quote" }
+        rentals: { type: array, items: { $ref: "#/components/schemas/Rental" } }
+        nextPaymentDate: { type: string, format: date, nullable: true }
+    ExtensionOptions:
+      type: object
+      properties:
+        currentEndDate: { type: string, format: date }
+        month:
+          type: object
+          properties:
+            allowed: { type: boolean }
+            blockedReason: { type: string, nullable: true }
             options:
               type: array
               items:
                 type: object
                 properties:
-                  priceType: { $ref: "#/components/schemas/PriceType" }
-                  monthlyPrice: { type: integer }
-                  sampleDevice: { $ref: "#/components/schemas/Device" }
-            reviewSummary:
-              type: object
-              description: LLM 요약 (리뷰 n개 분석)
-              properties:
-                reviewCount: { type: integer }
-                reasons:
-                  type: array
-                  items:
-                    type: object
-                    properties:
-                      label: { type: string }
-                      ratio: { type: number }
-                pros: { type: string }
-                cons: { type: string }
-                bestFor: { type: string }
-    Device:
-      type: object
-      description: 개별 기기 (QR 이력 단위, 예 D-0412)
-      properties:
-        id: { type: string }
-        code: { type: string, example: "D-0412" }
-        source: { $ref: "#/components/schemas/DeviceSource" }
-        grade: { type: string, enum: [A, B] }
-        priceType: { $ref: "#/components/schemas/PriceType" }
-        conditionScore: { type: integer, example: 92 }
-        acquiredAt: { type: string, format: date }
-        lastCleanedAt: { type: string, format: date }
-        preexistingDamageCount: { type: integer }
-    Order:
-      type: object
-      properties:
-        id: { type: string }
-        rentals:
-          type: array
-          items: { $ref: "#/components/schemas/Rental" }
-        payToday: { type: integer }
-        monthlyTotal: { type: integer }
+                  months: { type: integer }
+                  newEndDate: { type: string, format: date }
+                  monthlyKrw: { type: integer }
+                  couponDiscountKrw: { type: integer }
+        week:
+          type: object
+          properties:
+            allowed: { type: boolean }
+            blockedReason: { type: string, nullable: true }
+            opensOn: { type: string, format: date, description: 종료일 14일 전 }
+            options:
+              type: array
+              items:
+                type: object
+                properties:
+                  weeks: { type: integer }
+                  newEndDate: { type: string, format: date }
+                  priceKrw: { type: integer }
+
+    # ---------- 렌탈
     Rental:
       type: object
       properties:
         id: { type: string }
-        product: { $ref: "#/components/schemas/ProductSummary" }
-        device: { $ref: "#/components/schemas/Device" }
+        orderId: { type: string }
+        productKey: { type: string }
+        productName: { type: string }
+        device: { $ref: "#/components/schemas/DeviceBrief" }
         priceType: { $ref: "#/components/schemas/PriceType" }
-        protection: { $ref: "#/components/schemas/ProtectionPlan" }
+        monthlyKrw: { type: integer }
+        firstMonthKrw: { type: integer }
+        months: { type: integer }
         startDate: { type: string, format: date }
         endDate: { type: string, format: date }
-        status: { type: string, enum: [SCHEDULED, ACTIVE, RETURN_REQUESTED, RETURNED, CLOSED] }
-        receivedCheckDone: { type: boolean, description: 8-2 받은 날 확인 완료 여부 }
-    InspectionPhoto:
+        dday: { type: integer, description: 종료일 − 오늘 }
+        progress: { type: number, minimum: 0, maximum: 1 }
+        protection: { $ref: "#/components/schemas/ProtectionPlan" }
+        coverageUsed: { type: boolean }
+        weekExtensionsUsed: { type: integer }
+        overdue: { type: boolean }
+        status: { $ref: "#/components/schemas/RentalStatus" }
+        receivedCheck:
+          type: object
+          properties:
+            done: { type: boolean }
+            deadline: { type: string, format: date-time, nullable: true }
+        nextConsumableDate: { type: string, format: date, nullable: true }
+        judgementId: { type: string, nullable: true }
+    ReceivedCheckResult:
       type: object
       properties:
-        id: { type: string }
+        rental: { $ref: "#/components/schemas/Rental" }
+        aiPreliminary: { type: boolean, enum: [true] }
+        sides:
+          type: array
+          items:
+            type: object
+            properties:
+              side: { $ref: "#/components/schemas/PhotoSide" }
+              result: { type: string, enum: [SAME_AS_OUTBOUND, PREEXISTING_ONLY, NEW_DAMAGE_SUSPECTED, CHECKING] }
+              findings: { type: array, items: { $ref: "#/components/schemas/Finding" } }
+        replacementScheduled: { type: string, format: date, nullable: true, description: 이상 신고 시 다음 지정일 }
+
+    # ---------- 사진 · 판정
+    PhotoInput:
+      type: object
+      required: [side, url]
+      properties:
         side: { $ref: "#/components/schemas/PhotoSide" }
-        url: { type: string }
-        retakeHint: { type: string, nullable: true, description: 반사광 등 다시 찍기 안내 }
-    DamageFinding:
+        url: { type: string, description: Vercel Blob URL }
+    Photo:
+      allOf:
+        - $ref: "#/components/schemas/PhotoInput"
+        - type: object
+          properties:
+            id: { type: string }
+            purpose: { $ref: "#/components/schemas/PhotoPurpose" }
+            takenAt: { type: string, format: date-time }
+            retakeHint: { type: string, nullable: true, description: "반사광·정합 실패 등 다시 찍기 안내" }
+    FindingInput:
       type: object
+      required: [side, bbox, lengthMm]
       properties:
-        id: { type: string }
         side: { $ref: "#/components/schemas/PhotoSide" }
         bbox:
           type: array
+          minItems: 4
+          maxItems: 4
           description: "[x, y, w, h] 0~1 정규화"
           items: { type: number }
         lengthMm: { type: number }
-        preexisting: { type: boolean, description: 출고·받은 날 사진에 이미 있던 흠 }
-        aiClass: { $ref: "#/components/schemas/DamageClass" }
-        aiConfidence: { type: number }
-        needsReview: { type: boolean, description: 2cm 기준 근처 등 운영자 확인 필요 }
-        finalClass:
-          allOf: [{ $ref: "#/components/schemas/DamageClass" }]
+        dentOrBreak: { type: boolean, default: false }
+    Finding:
+      allOf:
+        - $ref: "#/components/schemas/FindingInput"
+        - type: object
+          properties:
+            id: { type: string }
+            source: { type: string, enum: [AI, OPERATOR] }
+            preexisting: { type: boolean, description: 출고·받은 날 사진에 이미 있던 흠 }
+            aiClass:
+              allOf: [{ $ref: "#/components/schemas/DamageClass" }]
+            confidence:
+              allOf: [{ $ref: "#/components/schemas/Confidence" }]
+            needsReview: { type: boolean, description: "2cm 기준 근처 또는 신뢰도 낮음 → 고객에겐 '확인 중'" }
+            finalClass:
+              allOf: [{ $ref: "#/components/schemas/DamageClass" }]
+            overrideReason: { type: string, nullable: true }
+    Judgement:
+      type: object
+      description: "MY-05 · DMG-03~05. 예비(AI)와 최종(운영자) 값을 둘 다 보관"
+      properties:
+        id: { type: string }
+        rentalId: { type: string }
+        deviceCode: { type: string }
+        status: { $ref: "#/components/schemas/JudgementStatus" }
+        photos:
+          type: object
+          properties:
+            outbound: { type: array, items: { $ref: "#/components/schemas/Photo" } }
+            received: { type: array, items: { $ref: "#/components/schemas/Photo" } }
+            return: { type: array, items: { $ref: "#/components/schemas/Photo" } }
+        findings: { type: array, items: { $ref: "#/components/schemas/Finding" } }
+        preliminary:
+          type: object
+          properties:
+            aiClass: { $ref: "#/components/schemas/DamageClass" }
+            confidence: { $ref: "#/components/schemas/Confidence" }
+            estimatedChargeKrw: { type: integer }
+            modelVersion: { type: string }
+            analyzedAt: { type: string, format: date-time }
+        conditionScore:
+          type: object
+          properties:
+            before: { type: integer }
+            after: { type: integer }
+            priceTypeSuggestion: { type: string, enum: [STANDARD, STANDARD_RECHECK, VALUE_OR_REPAIR] }
+        protection: { $ref: "#/components/schemas/ProtectionPlan" }
+        repairCostKrw: { type: integer, nullable: true }
+        residualValueKrw: { type: integer }
+        chargeByPlan:
+          type: object
+          description: DMG-04 과실 파손 후보일 때 단계별 부담 비교
+          properties:
+            BASIC: { type: integer }
+            SAFE: { type: integer }
+            FULL: { type: integer }
+        final:
+          type: object
           nullable: true
-        overrideReason: { type: string, nullable: true }
-    Inspection:
+          properties:
+            finalClass: { $ref: "#/components/schemas/DamageClass" }
+            operatingTest: { type: string, enum: [PASS, FAIL] }
+            customerChargeKrw: { type: integer }
+            decidedAt: { type: string, format: date-time }
+            disputeDeadline: { type: string, format: date-time }
+        dispute:
+          type: object
+          nullable: true
+          properties:
+            content: { type: string }
+            at: { type: string, format: date-time }
+            result: { type: string, nullable: true }
+            dueBy: { type: string, format: date-time }
+    OutboundInspection:
+      type: object
+      properties:
+        deviceId: { type: string }
+        deviceCode: { type: string }
+        photos: { type: array, items: { $ref: "#/components/schemas/Photo" } }
+        preexistingFindings: { type: array, items: { $ref: "#/components/schemas/Finding" } }
+        conditionScore: { type: integer }
+        priceTypeSuggestion: { type: string, enum: [STANDARD, STANDARD_RECHECK, VALUE_OR_REPAIR] }
+        checklistPassed: { type: boolean }
+        confirmed: { type: boolean }
+    AiMetrics:
+      type: object
+      description: DMG-05 AI 성능 (최근 30일, 실제 운영 데이터로만 계산)
+      properties:
+        agreementRate: { type: number, nullable: true }
+        recall: { type: number, nullable: true }
+        lengthErrorMm: { type: number, nullable: true }
+        disputeRate: { type: number, nullable: true }
+        sampleSize: { type: integer }
+
+    # ---------- 매입
+    Buyback:
       type: object
       properties:
         id: { type: string }
-        stage: { $ref: "#/components/schemas/InspectionStage" }
-        status: { $ref: "#/components/schemas/InspectionStatus" }
-        deviceId: { type: string }
+        productKey: { type: string }
+        purchasedAt: { type: string }
+        condition: { $ref: "#/components/schemas/BuybackCondition" }
+        eligible: { type: boolean }
+        ineligibleReason: { type: string, nullable: true }
+        quote:
+          type: object
+          nullable: true
+          properties:
+            quoteKrw: { type: integer }
+            minKrw: { type: integer }
+            maxKrw: { type: integer }
+            rate: { type: number }
+            rendyUserBonus: { type: boolean }
+            seasonBonus: { type: boolean }
+            basis: { type: string, example: "공식몰가 377,000 × 30% × 1.0" }
+            expiresAt: { type: string, format: date-time }
+        pickupDate: { type: string, format: date, nullable: true }
+        inspection:
+          type: object
+          nullable: true
+          properties:
+            grade: { $ref: "#/components/schemas/Grade" }
+            checks: { type: object, additionalProperties: { type: boolean } }
+            photos: { type: array, items: { $ref: "#/components/schemas/Photo" } }
+        finalPriceKrw: { type: integer, nullable: true }
+        paidAt: { type: string, format: date-time, nullable: true }
+        status: { $ref: "#/components/schemas/BuybackStatus" }
+
+    # ---------- 운영자
+    AdminDevice:
+      type: object
+      properties:
+        id: { type: string }
+        code: { type: string }
+        productKey: { type: string }
+        route: { type: string, enum: [BUYBACK, RETURN, NEW] }
+        releasedMonth: { type: string }
+        checks: { type: object, additionalProperties: { type: boolean } }
+        grade: { $ref: "#/components/schemas/Grade" }
+        priceType: { $ref: "#/components/schemas/PriceType" }
+        priceTypeAuto: { $ref: "#/components/schemas/PriceType" }
+        status: { $ref: "#/components/schemas/DeviceStatus" }
+    DeliveryTask:
+      type: object
+      properties:
+        id: { type: string }
+        kind: { type: string, enum: [DELIVERY, PICKUP, SWAP, BUYBACK_PICKUP] }
+        date: { type: string, format: date }
+        express: { type: boolean }
+        address: { type: string }
         rentalId: { type: string, nullable: true }
-        photos:
+        buybackId: { type: string, nullable: true }
+        deviceCode: { type: string, nullable: true }
+        outboundConfirmed: { type: boolean }
+        status: { type: string, enum: [PLANNED, DEPARTED, DELIVERED, HUB_STORED, PICKED_UP, FAILED] }
+    Dashboard:
+      type: object
+      properties:
+        kpis:
           type: array
-          items: { $ref: "#/components/schemas/InspectionPhoto" }
-        baselinePhotos:
+          items:
+            type: object
+            properties:
+              key: { type: string, example: utilization }
+              label: { type: string }
+              value: { type: number }
+              target: { type: number }
+        products:
           type: array
-          description: 비교 기준(출고·받은 날) 사진
-          items: { $ref: "#/components/schemas/InspectionPhoto" }
-        findings:
-          type: array
-          items: { $ref: "#/components/schemas/DamageFinding" }
-        conditionScoreBefore: { type: integer }
-        conditionScoreAfter: { type: integer }
-        preliminaryCharge:
-          type: integer
-          description: AI 예비 판정 기준 예상 고객 부담(원)
-        finalCharge: { type: integer, nullable: true }
-        disputeDeadline: { type: string, format: date-time, nullable: true }
+          items:
+            type: object
+            properties:
+              productKey: { type: string }
+              fleet: { type: integer }
+              available: { type: integer }
+              utilization14d: { type: number }
+              waitlist: { type: integer }
+              restockSignal: { type: boolean }
+              restockOrder: { type: string, example: "중고 매입 → 새 제품" }

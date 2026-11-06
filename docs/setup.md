@@ -14,7 +14,7 @@ rsync -a --ignore-existing /tmp/web/ apps/web/
 ```bash
 npx -y @nestjs/cli new /tmp/api --package-manager pnpm --skip-install --skip-git
 rsync -a --ignore-existing /tmp/api/ apps/api/
-# apps/api/package.json: name "@rendy/api", 의존성 "@rendy/shared": "workspace:*", prisma, @prisma/client 추가
+# apps/api/package.json: name "@rendy/api", 의존성 "@rendy/shared": "workspace:*", prisma@6, @prisma/client@6 추가 (7은 설정 방식이 다름)
 # apps/api/package.json 에 아래 추가 (스키마는 database/ 에 있음)
 #   "prisma": { "schema": "../../database/prisma/schema.prisma", "seed": "ts-node ../../database/seed/seed.ts" }
 ```
