@@ -215,7 +215,7 @@ html[data-theme="rendy"] {
   --peach: #fff1e7;
   --lilac: #eef1f7;
   --mint: #e3f5ef;
-  --sans: 'Pretendard Variable', Pretendard, system-ui, -apple-system, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+  --sans: 'SUIT Variable', 'Pretendard Variable', Pretendard, system-ui, -apple-system, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
   --serif: var(--sans);
   --cond: var(--sans);
 }
