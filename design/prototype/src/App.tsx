@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { lazy, Suspense, useEffect } from 'react'
 import { Outlet, Route, Routes, useLocation } from 'react-router-dom'
 import { FloatingAI, Footer, Header } from './components'
 import Home from './pages/Home'
@@ -18,6 +18,8 @@ import Sell from './pages/Sell'
 import Admin from './pages/Admin'
 import Judge from './pages/Judge'
 import Try from './pages/Try'
+// 3D 뷰어는 model-viewer(약 1MB)가 필요해서 이 화면을 열 때만 불러옴
+const Viewer3D = lazy(() => import('./pages/Viewer3D'))
 
 function Layout() {
   const { pathname } = useLocation()
@@ -39,6 +41,7 @@ export default function App() {
         <Route path="/" element={<Main />} />
         <Route path="/products" element={<ProductList />} />
         <Route path="/products/:id" element={<ProductDetail />} />
+        <Route path="/products/:id/3d" element={<Suspense fallback={<section className="section"><p className="muted">3D 화면 여는 중…</p></section>}><Viewer3D /></Suspense>} />
         <Route path="/checkout" element={<Checkout />} />
         <Route path="/complete" element={<Complete />} />
         <Route path="/login" element={<Login />} />

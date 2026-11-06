@@ -4,6 +4,7 @@ import { CATEGORIES, PLANS, PRODUCTS, careFee, planOf, deliveryFee, firstMonth, 
 import type { PlanKey } from '../data'
 import { Bar, Icon, Modal, ProductCard, SectionHead, Toast, ProductArt } from '../components'
 import { useStore, type Grade } from '../store'
+import '../viewer3d.css'
 
 export function ProductList() {
   const [sp, setSp] = useSearchParams()
@@ -82,6 +83,7 @@ export function ProductDetail() {
               <div key={i} className="gallery-tile" style={{ background: p.bg, aspectRatio: all.length === 1 ? '1/0.9' : '1/1.1', gridColumn: all.length === 1 || (all.length === 3 && i === 0) ? '1 / -1' : undefined, display: 'grid', placeItems: 'center', position: 'relative', overflow: 'hidden' }}>
                 <ProductArt p={p} i={i} size={i === 0 ? 220 : 150} />
                 {i === 0 && <span className="badge solid" style={{ position: 'absolute', top: 12, left: 12 }}>세척 후 실물</span>}
+                {i === 0 && p.model3d && <Link to={`/products/${p.id}/3d`} className="v3d-open"><i>3D</i>돌려보기 ›</Link>}
               </div>
             ))}
           </div>
