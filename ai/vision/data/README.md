@@ -2,7 +2,7 @@
 
 학습·평가 이미지는 **공유 드라이브**에 두고 여기로 내려받아 쓴다. 이 README 외에는 커밋되지 않는다 (`.gitignore`).
 
-- 드라이브 폴더: `rendy-vision-data` — 링크: _(만든 뒤 여기에 붙여 넣기, 공유는 "링크가 있는 사용자 · 뷰어")_
+- 드라이브 폴더: [`rendy-vision-data`](https://drive.google.com/drive/folders/1_-dxcTT7iumit0BkvZGpwpSv3GC7XFgQ?usp=sharing) (링크가 있는 사용자 · 뷰어. 사진을 올릴 사람은 폴더 주인에게 편집자 초대 요청)
 
 ## 폴더 구조
 
