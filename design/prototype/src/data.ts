@@ -188,11 +188,14 @@ export const lowest = (p: Product) => p.monthly.value ?? p.monthly.standard
 export const firstMonth = (p: Product, g: 'standard' | 'value', months: number) => (p.shortFirst && months < 4 ? p.shortFirst : priceOf(p, g))
 export const deliveryFee = (monthlySum: number) => (monthlySum >= PRICING.freeOver ? 0 : PRICING.delivery)
 
-// 파손 보장 단계 (렌터카 자차처럼) — 기기 1대당 월 요금. 기능명세서 부록 A · C-7 (★ BM 확인 전)
+// 파손 보장 단계 (렌터카 자차처럼) — 기능명세서 부록 A · C-7 (★ BM 확인 전)
+// rate = 보장 월 요금 (품목 월 대여료의 %), repairShare = 과실 파손 수리비 중 고객 부담 %, lossShare = 분실 시 잔존가치 중 고객 부담 %
 export type PlanKey = 'basic' | 'safe' | 'full'
-export const PLANS: { key: PlanKey; name: string; fee: number; pay: string; desc: string }[] = [
-  { key: 'basic', name: '기본', fee: 0, pay: '수리비 실비', desc: '과실 파손 시 수리비 실비 (잔존가치 한도)' },
-  { key: 'safe', name: '안심', fee: 1000, pay: '최대 1만 원', desc: '과실 파손 자기부담 최대 1만 원' },
-  { key: 'full', name: '완전 안심', fee: 2000, pay: '0원', desc: '과실 파손 0원 (렌탈당 1회) · 분실 잔존가치 50%' },
+export const PLANS: { key: PlanKey; name: string; rate: number; repairShare: number; lossShare: number; desc: string }[] = [
+  { key: 'basic', name: '기본', rate: 0, repairShare: 100, lossShare: 100, desc: '과실 파손 시 수리비 100% (잔존가치 한도)' },
+  { key: 'safe', name: '안심', rate: 5, repairShare: 30, lossShare: 100, desc: '과실 파손 시 수리비 30%만 부담 (렌탈당 1회)' },
+  { key: 'full', name: '완전 안심', rate: 10, repairShare: 0, lossShare: 50, desc: '과실 파손 0% (렌탈당 1회) · 분실 잔존가치 50%' },
 ]
 export const planOf = (k: PlanKey | undefined) => PLANS.find((x) => x.key === k) ?? PLANS[0]
+// 보장 월 요금 = 품목 월 대여료 × rate, 100원 단위 반올림
+export const careFee = (k: PlanKey | undefined, monthly: number) => Math.round((monthly * planOf(k).rate) / 100 / 100) * 100

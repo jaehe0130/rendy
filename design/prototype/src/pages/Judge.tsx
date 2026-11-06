@@ -31,11 +31,11 @@ function residual(c: Case) {
   const p = productById(c.productId)!
   return Math.round((p.newPrice * Math.max(0, 1 - used / c.lifeMonths)) / 1000) * 1000
 }
-// 고객 부담 (부록 C-7): 과실 파손만 부담, 단계별로 다름. 상한 = 잔존가치
+// 고객 부담 (부록 C-7): 과실 파손만 부담, 수리비 × 단계별 %. 상한 = 잔존가치
 function burden(cat: Cat, plan: PlanKey, repair: number, cap: number) {
   if (cat !== '과실 파손') return 0
   const r = Math.min(repair, cap)
-  return plan === 'full' ? 0 : plan === 'safe' ? Math.min(r, 10000) : r
+  return Math.round((r * planOf(plan).repairShare) / 100 / 1000) * 1000
 }
 
 export default function Judge() {
@@ -63,7 +63,7 @@ export default function Judge() {
         <Link to="/admin" className="btn line sm">대시보드</Link>
       </div>
 
-      <div className="grid" style={{ gridTemplateColumns: 'minmax(0,280px) minmax(0,1fr)', gap: 20, alignItems: 'start' }}>
+      <div className="judge-grid">
         {/* 판정 대기 목록: 신뢰도 낮은 것부터 */}
         <div className="panel stack gap-8" style={{ padding: 16 }}>
           <b style={{ fontSize: 14 }}>판정 대기 {queue.filter((x) => !done[x.id]).length}건</b>

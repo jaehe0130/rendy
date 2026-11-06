@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { CATEGORIES, PLANS, PRODUCTS, planOf, deliveryFee, firstMonth, priceOf, productById, usedFor, won, type Category } from '../data'
+import { CATEGORIES, PLANS, PRODUCTS, careFee, planOf, deliveryFee, firstMonth, priceOf, productById, usedFor, won, type Category } from '../data'
 import type { PlanKey } from '../data'
 import { Bar, Icon, Illust, Modal, ProductCard, SectionHead, Toast } from '../components'
 import { useStore, type Grade } from '../store'
@@ -52,6 +52,8 @@ export function ProductDetail() {
   const [mode, setMode] = useState<'long' | 'short'>('long')
   const [grade, setGrade] = useState<Grade>('standard')
   const [months, setMonths] = useState(4)
+  const [customMonths, setCustomMonths] = useState(false)
+  const [monthsText, setMonthsText] = useState('4')
   const [weeks, setWeeks] = useState(1)
   const [plan, setPlan] = useState<PlanKey>('full')
   const [toast, setToast] = useState('')
@@ -63,7 +65,8 @@ export function ProductDetail() {
   const total = mode === 'long' ? first + unit * (months - 1) : unit
   const saved = p.newPrice - total
   const fee = deliveryFee(unit)
-  const careSum = planOf(plan).fee * months
+  const careOf = (k: PlanKey) => careFee(k, priceOf(p, grade))
+  const careSum = careOf(plan) * (mode === 'long' ? months : 1)
   const flash = (m: string) => { setToast(m); setTimeout(() => setToast(''), 1800) }
   const add = (go: boolean) => {
     addToCart({ productId: p.id, mode, grade, months, weeks, plan })
@@ -116,8 +119,22 @@ export function ProductDetail() {
                       </div>
                     </div>
                     <div className="stack gap-8"><b>기간</b>
-                      <div className="grid g4" style={{ gap: 8, gridTemplateColumns: 'repeat(4,1fr)' }}>
-                        {[2, 3, 4, 6].map((m) => <button key={m} className={`opt ${months === m ? 'on' : ''}`} onClick={() => setMonths(m)}><b>{m}개월</b></button>)}
+                      <div className={customMonths ? 'grid g2' : 'grid'} style={{ gap: 8 }}>
+                        <select className="input" value={customMonths ? 'custom' : months} onChange={(e) => {
+                          if (e.target.value === 'custom') { setCustomMonths(true); setMonthsText(String(months)) }
+                          else { setCustomMonths(false); setMonths(Number(e.target.value)) }
+                        }}>
+                          {Array.from({ length: 11 }, (_, i) => i + 2).map((m) => <option key={m} value={m}>{m}개월</option>)}
+                          <option value="custom">직접 입력</option>
+                        </select>
+                        {customMonths && (
+                          <div className="row gap-8" style={{ alignItems: 'center' }}>
+                            <input className="input" type="number" inputMode="numeric" min={2} max={36} value={monthsText} placeholder="2~36"
+                              onChange={(e) => { setMonthsText(e.target.value); const n = parseInt(e.target.value, 10); if (n >= 2 && n <= 36) setMonths(n) }}
+                              onBlur={() => setMonthsText(String(months))} />
+                            <span style={{ whiteSpace: 'nowrap' }}>개월</span>
+                          </div>
+                        )}
                       </div>
                       <span className="faint" style={{ fontSize: 12 }}>1개월 단위 연장 가능 · 일찍 반납해도 고른 기간 요금은 그대로예요{p.shortFirst ? ` · 4개월 미만이면 첫 달 ${won(p.shortFirst)} (새 필터)` : ''}</span>
                     </div>
@@ -134,8 +151,8 @@ export function ProductDetail() {
                     {PLANS.map((x) => (
                       <button key={x.key} className={`opt ${plan === x.key ? 'on' : ''}`} onClick={() => setPlan(x.key)} style={{ textAlign: 'left' }}>
                         <b>{x.name}{x.key === 'full' ? ' · 추천' : ''}</b>
-                        <small>{x.fee ? `월 ${won(x.fee)}` : '월 0원'}</small>
-                        <small style={{ color: 'var(--ink)', fontWeight: 700, marginTop: 4 }}>과실 파손 {x.pay}</small>
+                        <small>월 {won(careOf(x.key))}{x.rate ? ` (대여료의 ${x.rate}%)` : ''}</small>
+                        <small style={{ color: 'var(--ink)', fontWeight: 700, marginTop: 4 }}>과실 파손 수리비 {x.repairShare}%</small>
                       </button>
                     ))}
                   </div>
@@ -195,10 +212,18 @@ export function ProductDetail() {
             ))}
           </div>
           <b>파손 · 고장 처리 기준 (신청 전 안내)</b>
-          <div className="scroll-x"><table className="table" style={{ minWidth: 640 }}>
-            <thead><tr><th>원인</th><th>예시</th><th>처리</th><th>고객 부담</th></tr></thead>
-            <tbody>{[['자연 고장', '정상 사용 중 멈춤', '교체품 제공 · 고장 기간 대여료 차감', '0원'], ['생활 마모', '2cm 이하 긁힘 · 사용감', '세척 · 정비로 처리', '0원'], ['소모품', '필터', '정기 교체 (요금 포함)', '0원'], ['과실 파손', '떨어뜨림 · 침수', '수리 또는 부품 교체', '케어 가입 0원 · 미가입 수리비 실비'], ['분실 · 고의', '기기 분실 · 고의 훼손', '잔존가치 기준 보상', '잔존가치 전액']].map((r) => <tr key={r[0]}><td><b>{r[0]}</b></td><td className="muted">{r[1]}</td><td>{r[2]}</td><td>{r[3]}</td></tr>)}</tbody>
+          <div className="scroll-x"><table className="table" style={{ minWidth: 820 }}>
+            <thead><tr><th>원인</th><th>예시</th><th>처리</th>{PLANS.map((x) => <th key={x.key} style={plan === x.key ? { color: 'var(--ink)' } : undefined}>{x.name}{plan === x.key ? ' (선택)' : ''}</th>)}</tr></thead>
+            <tbody>{([
+              ['자연 고장', '정상 사용 중 멈춤', '교체품 제공 · 고장 기간 대여료 차감', () => '0원'],
+              ['생활 마모', '2cm 이하 긁힘 · 사용감', '세척 · 정비로 처리', () => '0원'],
+              ['소모품', '필터', '정기 교체 (요금 포함)', () => '0원'],
+              ['과실 파손', '떨어뜨림 · 침수 · 2cm 넘는 흠', '수리 또는 부품 교체', (x) => `수리비 ${x.repairShare}%`],
+              ['분실 · 도난', '기기 분실 · 도난', '잔존가치 기준 보상', (x) => `잔존가치 ${x.lossShare}%`],
+              ['고의 훼손', '일부러 부숨', '보장 제외', () => '잔존가치 100%'],
+            ] as [string, string, string, (x: (typeof PLANS)[number]) => string][]).map((r) => <tr key={r[0]}><td><b>{r[0]}</b></td><td className="muted">{r[1]}</td><td>{r[2]}</td>{PLANS.map((x) => <td key={x.key} style={plan === x.key ? { fontWeight: 700 } : undefined}>{r[3](x)}</td>)}</tr>)}</tbody>
           </table></div>
+          <span className="faint" style={{ fontSize: 12 }}>수리비 %는 실제 수리비 기준이고 잔존가치가 상한이에요. 안심 · 완전 안심 보장은 렌탈 1건당 1회, 2회째부터는 기본과 같아요.</span>
           <span className="faint" style={{ fontSize: 12 }}>반납 때 AI가 출고 · 반납 사진을 비교해 달라진 부분을 표시하고, 운영자가 작동 테스트와 함께 최종 판정해요. 받은 날 사진에 있던 흠은 책임에서 빠져요.</span>
         </div>
       </section>

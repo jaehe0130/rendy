@@ -112,7 +112,7 @@ export function Logo({ light }: { light?: boolean }) {
         </svg>
         <span className="row" style={{ alignItems: 'baseline', gap: 6 }}>
           <span style={{ fontWeight: 800, fontSize: 22, letterSpacing: '-0.03em', color: light ? '#fff' : 'var(--ink)' }}>Rendy</span>
-          <span style={{ fontWeight: 600, fontSize: 13, color: light ? 'rgba(255,255,255,.7)' : 'var(--ink-3)' }}>렌디</span>
+          <span className="hide-sm" style={{ fontWeight: 600, fontSize: 13, color: light ? 'rgba(255,255,255,.7)' : 'var(--ink-3)' }}>렌디</span>
         </span>
       </Link>
     )

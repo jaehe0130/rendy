@@ -39,7 +39,7 @@ export default function Admin() {
 
       <div className="grid g4" style={{ marginBottom: 24 }}>
         {[['사용 중 렌탈', `${active.length + 41}건`], ['월 반복 매출', won(mrr + 612000)], ['평균 가동률', `${avgUtil}%`], ['학교 인증', `${schoolTotal}명`]].map(([a, b]) => (
-          <div key={a} className="panel stack gap-4"><span className="muted" style={{ fontSize: 13 }}>{a}</span><span className="num" style={{ fontSize: 40 }}>{b}</span></div>
+          <div key={a} className="panel stack gap-4"><span className="muted" style={{ fontSize: 13 }}>{a}</span><span className="num" style={{ fontSize: 'clamp(24px, 6vw, 40px)', whiteSpace: 'nowrap' }}>{b}</span></div>
         ))}
       </div>
 

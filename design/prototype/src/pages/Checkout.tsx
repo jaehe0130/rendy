@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
-import { PRICING, planOf, deliveryFee as feeFor, firstMonth, productById, won } from '../data'
+import { PRICING, careFee, planOf, priceOf, deliveryFee as feeFor, firstMonth, productById, won } from '../data'
 import { Illust } from '../components'
 import { useStore, iso, addDays } from '../store'
 
@@ -27,7 +27,7 @@ export function Checkout() {
   const lines = cart.map((c) => {
     const p = productById(c.productId)!
     const first = c.mode === 'long' ? firstMonth(p, c.grade, c.months) : c.weeks === 1 ? p.weekly!.w1 : p.weekly!.w2
-    const care = planOf(c.plan).fee
+    const care = careFee(c.plan, priceOf(p, c.grade))
     return { c, p, first, care }
   })
   const n = cart.length

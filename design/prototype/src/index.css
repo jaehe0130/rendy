@@ -253,3 +253,9 @@ html[data-theme="rendy"] .toast { border-radius: 12px; background: var(--navy-90
 
 /* 운영자 판정 화면: 둥근 요소 최소화 */
 .judge .panel, .judge .btn, .judge .chip, .judge .badge, .judge .input, .judge .table { border-radius: 4px !important; }
+
+/* 휴대폰: 좁은 화면에서 숨길 것 · 판정 화면 한 줄로 */
+.judge-grid { display: grid; grid-template-columns: minmax(0, 280px) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 860px) { .judge-grid { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 560px) { .hide-sm { display: none !important; } }
+.badge { white-space: nowrap; }

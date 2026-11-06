@@ -137,7 +137,7 @@ export default function My() {
               <div style={{ background: 'var(--surface)', padding: 18 }} className="stack gap-4">
                 <span className="badge solid" style={{ alignSelf: 'flex-start' }}>예비 판정: 생활 마모</span>
                 <b className="serif" style={{ fontSize: 30, color: 'var(--success)' }}>예상 부담 0원</b>
-                <span className="faint" style={{ fontSize: 13 }}>2cm 이하 긁힘·찍힘은 생활 마모라 0원이에요. 과실 파손은 보장 단계에 따라 기본 수리비 실비 · 안심 최대 1만 원 · 완전 안심 0원이에요. 회수 후 운영자가 작동 테스트와 함께 최종 판정하고, 결과를 받은 뒤 48시간 안에 이의 신청할 수 있어요.</span>
+                <span className="faint" style={{ fontSize: 13 }}>2cm 이하 긁힘·찍힘은 생활 마모라 0원이에요. 과실 파손은 보장 단계에 따라 기본 수리비 100% · 안심 30% · 완전 안심 0%예요 (잔존가치 한도). 회수 후 운영자가 작동 테스트와 함께 최종 판정하고, 결과를 받은 뒤 48시간 안에 이의 신청할 수 있어요.</span>
               </div>
               <div className="row gap-8"><button className="btn line" onClick={() => { closeRet(); flash('이의 신청을 접수했어요. 3영업일 안에 다시 판정해요') }}>이의 신청</button><button className="btn" style={{ flex: 1 }} onClick={() => { requestReturn(ret.id); closeRet(); flash('반납 신청 완료. 회수 날 가져갈게요') }}>반납 확정</button></div>
               <span className="demo-note">프로토타입: 판정 결과는 예시예요. 실제로는 출고 때 찍은 사진과 AI가 부위별로 비교하고, 최종 판정은 운영자가 해요.</span>
