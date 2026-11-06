@@ -212,6 +212,13 @@ export function Footer() {
   )
 }
 
+/** 상품 그림: 사진이 있으면 사진(i번째), 없거나 와이어프레임 모드면 일러스트 */
+export function ProductArt({ p, size, i = 0 }: { p: Product; size?: number; i?: number }) {
+  const ph = p.photos?.[i] ?? p.photos?.[0]
+  if (!ph || WIREFRAME) return <Illust k={p.illust} size={size} />
+  return <img className={`ill photo ${ph.fit}`} src={ph.src} alt={p.name} width={size} height={size} loading="lazy" />
+}
+
 export function ProductCard({ p }: { p: Product }) {
   const sold = p.stock === 0
   return (
@@ -219,7 +226,7 @@ export function ProductCard({ p }: { p: Product }) {
       <div className="ph" style={{ background: p.bg }}>
         <span className={`badge ${sold ? 'solid' : 'soft'}`}>{sold ? `품절 · 대기 ${p.waitlist}명` : p.source}</span>
         <span className="heart" aria-hidden>{Icon.heart}</span>
-        <Illust k={p.illust} />
+        <ProductArt p={p} />
       </div>
       <div className="nm">{p.name}</div>
       <div className="pr">월 {won(lowest(p))}~</div>

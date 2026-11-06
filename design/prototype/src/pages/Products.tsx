@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { CATEGORIES, PLANS, PRODUCTS, careFee, planOf, deliveryFee, firstMonth, priceOf, productById, usedFor, won, type Category } from '../data'
 import type { PlanKey } from '../data'
-import { Bar, Icon, Illust, Modal, ProductCard, SectionHead, Toast } from '../components'
+import { Bar, Icon, Modal, ProductCard, SectionHead, Toast, ProductArt } from '../components'
 import { useStore, type Grade } from '../store'
 
 export function ProductList() {
@@ -78,9 +78,9 @@ export function ProductDetail() {
         <p className="faint" style={{ fontSize: 13, marginBottom: 20 }}><Link to="/products">빌리기</Link> / {CATEGORIES.find((c) => c.key === p.category)?.name} / {p.name}</p>
         <div className="split" style={{ gridTemplateColumns: 'minmax(0,1fr) min(460px,100%)' }}>
           <div className="grid g2" style={{ gap: 12 }}>
-            {[0, 1, 2, 3].map((i) => (
-              <div key={i} style={{ background: p.bg, aspectRatio: '1/1.1', display: 'grid', placeItems: 'center', position: 'relative' }}>
-                <Illust k={p.illust} size={i === 0 ? 220 : 150} />
+            {(p.photos?.length === 1 ? [0] : p.photos ? p.photos.map((_, i) => i).slice(0, 4) : [0, 1, 2, 3]).map((i, _, all) => (
+              <div key={i} className="gallery-tile" style={{ background: p.bg, aspectRatio: all.length === 1 ? '1/0.9' : '1/1.1', gridColumn: all.length === 1 || (all.length === 3 && i === 0) ? '1 / -1' : undefined, display: 'grid', placeItems: 'center', position: 'relative', overflow: 'hidden' }}>
+                <ProductArt p={p} i={i} size={i === 0 ? 220 : 150} />
                 {i === 0 && <span className="badge solid" style={{ position: 'absolute', top: 12, left: 12 }}>세척 후 실물</span>}
               </div>
             ))}

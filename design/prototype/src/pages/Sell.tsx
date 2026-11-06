@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { BUYBACK, PRODUCTS, won } from '../data'
-import { Illust, SectionHead, Toast } from '../components'
+import { Illust, SectionHead, Toast, ProductArt } from '../components'
 import { useStore } from '../store'
 import { Upload } from './My'
 
@@ -66,7 +66,7 @@ export default function Sell() {
           </div>
 
           <div className="panel stack gap-16" style={{ position: 'sticky', top: 120 }}>
-            <div style={{ background: p.bg, display: 'grid', placeItems: 'center', padding: 20 }}><Illust k={p.illust} size={150} /></div>
+            <div style={{ background: p.bg, display: 'grid', placeItems: 'center', padding: 20 }}><ProductArt p={p} size={150} /></div>
             <b style={{ fontSize: 20 }}>{p.name}</b>
             {quote === 'done' ? (
               <>

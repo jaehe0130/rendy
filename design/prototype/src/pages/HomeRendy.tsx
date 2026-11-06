@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { PRODUCTS, SCHOOLS, lowest, productById, won } from '../data'
-import { Illust, ProductCard } from '../components'
+import { ProductCard, ProductArt } from '../components'
 import { useStore, dday } from '../store'
 import '../rendy-home.css'
 
@@ -174,7 +174,7 @@ export default function HomeRendy() {
         <div className="rd-price-row">
           {PRODUCTS.map((p) => (
             <Link key={p.id} to={`/products/${p.id}`} className="rd-price">
-              <div style={{ background: p.bg }}><Illust k={p.illust} size={72} /></div>
+              <div style={{ background: p.bg }}><ProductArt p={p} size={72} /></div>
               <b>{p.name}</b><span>월 {won(lowest(p))}~</span>
             </Link>
           ))}

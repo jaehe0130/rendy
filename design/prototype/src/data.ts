@@ -3,12 +3,16 @@
 export type IllustKey = 'dehumidifier' | 'dryer' | 'humidifier' | 'foodwaste' | 'standbyme' | 'vacuum' | 'box'
 export type Category = 'seasonal' | 'laundry' | 'air' | 'kitchen'
 
+// 상품 사진 (public/products). cut = 배경 지운 제품 사진(타일 색 위에 올림) · scene = 생활 사진(칸을 꽉 채움)
+export interface ProductPhoto { src: string; fit: 'cut' | 'scene' }
+
 export interface Product {
   id: string
   name: string
   model: string
   category: Category
   illust: IllustKey
+  photos?: ProductPhoto[] // 없으면 일러스트
   bg: string
   newPrice: number
   monthly: { standard: number; value: number | null } // 일반형 / 실속형(일반형 −5,000원, 없으면 null)
@@ -41,6 +45,7 @@ export const PRODUCTS: Product[] = [
     model: 'Dehumidifier 10L',
     category: 'seasonal',
     illust: 'dehumidifier',
+    photos: [{ src: '/products/dehumidifier-10-1.webp', fit: 'cut' }, { src: '/products/dehumidifier-10-2.webp', fit: 'scene' }, { src: '/products/dehumidifier-10-3.webp', fit: 'scene' }],
     bg: 'var(--sky)',
     newPrice: 377000,
     monthly: { standard: 15000, value: 10000 },
@@ -62,6 +67,7 @@ export const PRODUCTS: Product[] = [
     model: 'Dehumidifier 16L',
     category: 'seasonal',
     illust: 'dehumidifier',
+    photos: [{ src: '/products/dehumidifier-16-1.webp', fit: 'cut' }],
     bg: 'var(--sky)',
     newPrice: 459000,
     monthly: { standard: 19000, value: 14000 },
@@ -83,6 +89,7 @@ export const PRODUCTS: Product[] = [
     model: 'Mini Dryer 3kg',
     category: 'laundry',
     illust: 'dryer',
+    photos: [{ src: '/products/mini-dryer-1.webp', fit: 'scene' }],
     bg: 'var(--peach)',
     newPrice: 499000,
     monthly: { standard: 20000, value: 15000 },
@@ -104,6 +111,7 @@ export const PRODUCTS: Product[] = [
     model: 'Humidifier 3L',
     category: 'air',
     illust: 'humidifier',
+    photos: [{ src: '/products/humidifier-1.webp', fit: 'cut' }, { src: '/products/humidifier-2.webp', fit: 'scene' }, { src: '/products/humidifier-3.webp', fit: 'cut' }],
     bg: 'var(--mint)',
     newPrice: 305000,
     monthly: { standard: 15000, value: null },
@@ -125,6 +133,7 @@ export const PRODUCTS: Product[] = [
     model: 'Food Waste Dryer 2L',
     category: 'kitchen',
     illust: 'foodwaste',
+    photos: [{ src: '/products/foodwaste-1.webp', fit: 'scene' }],
     bg: 'var(--butter)',
     newPrice: 329000,
     monthly: { standard: 15000, value: null },

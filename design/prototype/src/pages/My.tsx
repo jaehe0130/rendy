@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import { planOf, productById, won } from '../data'
-import { Bar, Illust, Modal, Toast } from '../components'
+import { Bar, Modal, Toast, ProductArt } from '../components'
 import { useStore, dday, iso, addDays, addMonths, type Rental } from '../store'
 
 export function Upload({ label, onFile }: { label: string; onFile?: (f: File) => void }) {
@@ -72,7 +72,7 @@ export default function My() {
             const d = dday(r.end)
             return (
               <div key={r.id} className="panel row gap-24 wrap-row">
-                <div style={{ background: p.bg, width: 112, height: 112, display: 'grid', placeItems: 'center' }}><Illust k={p.illust} size={84} /></div>
+                <div style={{ background: p.bg, width: 112, height: 112, display: 'grid', placeItems: 'center' }}><ProductArt p={p} size={84} /></div>
                 <div className="stack gap-8" style={{ flex: 1, minWidth: 220 }}>
                   <div className="row gap-8 wrap-row"><b style={{ fontSize: 18 }}>{p.name}</b><span className="badge soft">{r.mode === 'long' ? (r.grade === 'standard' ? '일반형' : '실속형') : '1주 단기'}</span>{r.status !== '사용 중' && <span className="badge solid">{r.status}</span>}<span className={`badge ${d <= 7 ? 'orange' : ''}`}>반납까지 D-{Math.max(0, d)}</span></div>
                   <span className="faint" style={{ fontSize: 13 }}>{r.start} ~ {r.end} · {r.mode === 'long' ? `월 ${won(r.price)}` : won(r.price)}{` · ${planOf(r.plan).name} 보장`} · {p.bought[r.grade]} 매입</span>

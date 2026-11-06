@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { planOf, productById, won, type PlanKey } from '../data'
-import { Illust, Toast } from '../components'
+import { Toast, ProductArt } from '../components'
 
 // 운영자 반납 최종 판정 (기능명세서 DMG-05 · ADM-03). AI는 흠집 후보만 표시하고, 판정은 운영자가 한다.
 // 예시 데이터 — 실제로는 출고 6면 · 받은 날 3장 · 반납 3장 사진과 AI 비교 결과가 들어온다.
@@ -91,7 +91,7 @@ export default function Judge() {
                     <tr key={f}><td style={{ fontSize: 13 }}>{f}</td>
                       {['출고', '받은 날', '반납'].map((k) => (
                         <td key={k}><div style={{ position: 'relative', background: p.bg, display: 'grid', placeItems: 'center', height: 96, borderRadius: 2 }}>
-                          <Illust k={p.illust} size={64} />
+                          <ProductArt p={p} size={64} />
                           {k === '반납' && m && <div style={{ position: 'absolute', left: `${m.x}%`, top: `${m.y}%`, width: `${m.w}%`, height: `${m.h}%`, border: '2px solid var(--primary)' }} title={`${m.cm}cm`} />}
                           {k === '반납' && m && <span className="badge orange" style={{ position: 'absolute', right: 4, bottom: 4 }}>{m.cm}cm</span>}
                         </div></td>

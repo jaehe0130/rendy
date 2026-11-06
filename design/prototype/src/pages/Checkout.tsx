@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { PRICING, careFee, planOf, priceOf, deliveryFee as feeFor, firstMonth, productById, won } from '../data'
-import { Illust } from '../components'
+import { ProductArt } from '../components'
 import { useStore, iso, addDays } from '../store'
 
 // 배송은 문 앞 지정일(화·금)만. 오늘 + 2일부터 다가오는 화·금 6번을 고를 수 있게
@@ -66,7 +66,7 @@ export function Checkout() {
             <b style={{ fontSize: 18 }}>담은 가전 {n > 1 && '· 같은 날 받고 같은 날 반납'}</b>
             {lines.map(({ c, p, first }) => (
               <div key={c.key} className="row gap-16">
-                <div style={{ background: p.bg, width: 72, height: 72, display: 'grid', placeItems: 'center', flexShrink: 0 }}><Illust k={p.illust} size={54} /></div>
+                <div style={{ background: p.bg, width: 72, height: 72, display: 'grid', placeItems: 'center', flexShrink: 0 }}><ProductArt p={p} size={54} /></div>
                 <div className="stack" style={{ flex: 1 }}>
                   <b>{p.name}</b>
                   <span className="muted" style={{ fontSize: 13 }}>{c.mode === 'long' ? `${c.grade === 'standard' ? '일반형' : '실속형'} · ${c.months}개월 · 월 ${won(first)}` : `1주 단기 · ${c.weeks}주 · ${won(first)}`}{` · ${planOf(c.plan).name} 보장`}</span>

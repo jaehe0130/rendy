@@ -272,3 +272,12 @@ html[data-theme="rendy"] .toast { border-radius: 12px; background: var(--navy-90
 .try .chip { border-radius: 4px !important; }
 .try-shot img { width: 100%; height: 100%; object-fit: cover; }
 .try-shot input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+
+/* 상품 사진 (ProductArt) — cut: 배경 지운 제품 사진 · scene: 생활 사진은 칸을 꽉 채움 */
+img.ill.photo { display: block; object-fit: contain; height: auto; max-width: 100%; }
+img.ill.photo.scene { object-fit: cover; }
+.pcard .ph img.ill.photo.cut { width: 72%; aspect-ratio: 1; }
+.pcard .ph img.ill.photo.scene { position: absolute; inset: 0; width: 100%; height: 100%; }
+.gallery-tile img.ill.photo.cut { width: 78%; height: auto; aspect-ratio: 1; }
+.gallery-tile img.ill.photo.scene { position: absolute; inset: 0; width: 100%; height: 100%; }
+.pcard .ph .badge, .pcard .ph .heart, .gallery-tile .badge { z-index: 1; }
