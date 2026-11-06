@@ -1,9 +1,8 @@
 {
-  "$note": "발표 데모가 항상 같은 결과를 내도록 고정한 시나리오 (와이어프레임 8-1~8-5 예시와 동일)",
+  "$note": "발표 데모 고정 시나리오 (와이어프레임 8-1~8-5 예시). 사진은 database/seed/demo-photos/<code>/<purpose>-<side>.webp",
   "devices": [
     {
       "code": "D-0412",
-      "product": "제습기 10L",
       "source": "BUYBACK",
       "grade": "A",
       "priceType": "STANDARD",
@@ -25,11 +24,11 @@
         "lengthMm": 16,
         "expected": "WEAR",
         "needsReview": true
-      }
+      },
+      "productKey": "dehumidifier"
     },
     {
       "code": "B-0107",
-      "product": "미니 건조기",
       "source": "BUYBACK",
       "grade": "B",
       "priceType": "VALUE",
@@ -41,16 +40,17 @@
         "repairCostKrw": 48000,
         "residualValueKrw": 301000,
         "protection": "FULL"
-      }
+      },
+      "productKey": "mini-dryer"
     },
     {
       "code": "H-0033",
-      "product": "가습기 3L",
       "source": "NEW",
       "grade": "A",
       "priceType": "STANDARD",
       "conditionScore": 98,
-      "returnFinding": null
+      "returnFinding": null,
+      "productKey": "humidifier"
     }
   ],
   "users": [

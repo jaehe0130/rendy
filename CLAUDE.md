@@ -21,7 +21,7 @@
 1. **내 영역 밖 파일은 수정하지 않는다.** 다른 영역 변경이 필요하면 고치지 말고, PR 설명의 "다른 영역 요청" 칸에 적는다.
 2. **API는 계약 먼저.** `docs/api/openapi.yaml` 수정 → `packages/shared` 타입 반영 → 구현. 계약 PR은 따로 올린다(작고 빠르게 머지).
 3. **DB 스키마는 `database/prisma/schema.prisma`에서만** 바꾼다. 마이그레이션 파일은 데이터 담당만 생성한다.
-4. **정책 숫자는 하드코딩 금지.** 2cm 생활 마모 기준, 보장 단계 요금, 이의 신청 48시간 등은 `packages/shared/policy/damage-policy.json`에서 읽는다. (TS와 Python 모두 이 파일을 읽는다)
+4. **정책 숫자는 하드코딩 금지.** 기준 문서는 `design/spec/기능명세서.md` v3.2 부록. 파손 판정 값(2cm, 보장 단계, 이의 48시간 등)은 `packages/shared/policy/damage-policy.json`(TS·Python 공용), 요금·배송·연장·쿠폰·매입 값은 `rendy-policy.json`. 계산은 `@rendy/shared`의 `pricing.ts` · `damage.ts` 함수를 쓴다.
 5. **디자인 값은 `design/tokens/`에서.** 색·폰트·간격을 컴포넌트에 직접 쓰지 않는다.
 6. **AI 서비스는 HTTP 계약으로만 연결.** 백엔드는 `ai/vision/contract/openapi.yaml`만 보고 호출한다. AI 미완성 시 `VISION_MOCK=1`로 고정 응답을 쓴다.
 7. **AI가 최종 판정한다고 쓰지 않는다.** UI 문구·API 필드명 모두 "예비 판정(AI)" / "최종 판정(운영자)"를 구분한다.

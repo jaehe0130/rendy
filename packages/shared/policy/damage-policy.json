@@ -1,56 +1,56 @@
 {
-  "version": "2026-11-hackathon",
+  "version": "spec-v3.2",
+  "source": "design/spec/기능명세서.md 부록 A, C-7, C-12 — 값이 다르면 명세서가 기준. ★ 표시 값은 BM 확인 전",
   "description": "파손 판정·보장 정책. web/api(TS)와 ai(Python)가 모두 이 파일을 읽는다. 숫자를 코드에 하드코딩하지 말 것.",
+
   "wearThresholdMm": 20,
+  "wearThresholdNote": "C-7: 2cm 이하 긁힘·찍힘·변색 + 작동 정상 = 생활 마모(0원). 2cm 넘는 긁힘·깨짐 = 과실 파손 후보",
+
   "reviewMarginMm": 15,
-  "reviewMarginNote": "길이 오차 평균 약 15mm(합성 실험). 20±15mm 안의 흠은 AI 분류와 관계없이 needsReview=true",
+  "reviewMarginNote": "명세서에 없는 값(백엔드·AI 제안). 합성 실험 길이 오차 평균 약 15mm라 20±15mm 안의 흠은 needsReview=true → 운영자 우선 확인",
+
+  "confidence": {
+    "levels": ["HIGH", "MEDIUM", "LOW"],
+    "highMin": 0.75,
+    "mediumMin": 0.5,
+    "note": "C-12 ★: 높음(정합 성공+흠집 뚜렷) / 중간 / 낮음(흐림·반사·각도 차이). 숫자 구간은 백엔드·AI 제안. LOW는 운영자 우선, 고객에게는 '확인 중'"
+  },
+
   "conditionScore": {
-    "downgradeToValueBelow": 70
+    "start": 100,
+    "perCmOfNewDamage": 6,
+    "perFindingOver2cm": 15,
+    "perDentOrBreak": 10,
+    "min": 0,
+    "suggestStandardMin": 85,
+    "suggestStandardRecheckMin": 70,
+    "note": "C-12 ★: 100 − Σ(새 흠집 cm × 6) − (2cm 넘는 흠집 1개당 15) − (찍힘·깨짐 1개당 10). 85↑ 일반형 / 70~84 일반형(다음 정비 때 재검사) / 70 미만 실속형(실속형 없는 품목은 수리 후 재검사)"
   },
+
   "photoSides": {
-    "OUTBOUND": [
-      "FRONT",
-      "LEFT",
-      "RIGHT",
-      "BACK",
-      "TOP",
-      "OPERATING"
-    ],
-    "RECEIVED": [
-      "FRONT",
-      "LEFT",
-      "OPERATING"
-    ],
-    "RETURN": [
-      "FRONT",
-      "LEFT",
-      "OPERATING"
-    ]
+    "OUTBOUND": ["FRONT", "LEFT", "RIGHT", "BACK", "TOP", "OPERATING"],
+    "RECEIVED": ["FRONT", "LEFT", "OPERATING"],
+    "RETURN": ["FRONT", "LEFT", "OPERATING"],
+    "note": "DMG-01 출고 6면, MY-09·MY-04 고객 3장(정면·옆면·작동 화면). 고객 '옆면'은 LEFT로 가정(ai/vision 계약 enum과 맞춤) — docs/open-issues.md에서 확정 필요"
   },
-  "photoSidesNote": "고객 '옆면'은 LEFT로 가정 — docs/open-issues.md에서 확정 필요",
+
   "protectionPlans": {
-    "BASIC": {
-      "label": "기본",
-      "monthlyKrw": 0,
-      "faultCharge": "REPAIR_COST_CAPPED_BY_RESIDUAL",
-      "lossRatio": 1.0
-    },
-    "SAFE": {
-      "label": "안심",
-      "monthlyKrw": 1000,
-      "faultCharge": "MAX",
-      "faultMaxKrw": 10000,
-      "lossRatio": 1.0
-    },
-    "FULL": {
-      "label": "완전 안심",
-      "monthlyKrw": 2000,
-      "faultCharge": "ZERO_ONCE_PER_RENTAL",
-      "lossRatio": 0.5
-    }
+    "BASIC": { "label": "기본", "monthlyKrw": 0, "faultCharge": "REPAIR_COST_CAPPED_BY_RESIDUAL", "lossRatio": 1.0 },
+    "SAFE": { "label": "안심", "monthlyKrw": 1000, "faultCharge": "MAX", "faultMaxKrw": 10000, "lossRatio": 1.0 },
+    "FULL": { "label": "완전 안심", "monthlyKrw": 2000, "faultCharge": "ZERO", "lossRatio": 0.5 }
   },
+  "protectionNote": "부록 A·C-7 ★: 기기 1대당 월 요금. 보장은 렌탈당 1회, 2회째 과실 파손부터 기본과 같음. 고의 훼손은 모든 단계 잔존가치 전액. 주문·연장 때만 단계 변경 가능",
+  "coverageOncePerRental": true,
+  "intentionalRatio": 1.0,
+  "naturalFailureChargeKrw": 0,
   "wearChargeKrw": 0,
-  "intentionalCovered": false,
+
+  "residualValue": {
+    "formula": "officialPrice × max(0, 1 − monthsSinceRelease ÷ lifespanMonths)",
+    "roundToKrw": 1000,
+    "note": "C-7 ★"
+  },
+
   "receivedReportWindowHours": 24,
   "disputeWindowHours": 48,
   "disputeResolutionBusinessDays": 3

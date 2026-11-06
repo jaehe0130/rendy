@@ -1,21 +1,24 @@
-// 렌디 데이터 모델 — 데이터 담당만 수정
-// P0(데모 필수) 모델은 완성, P1/P2는 최소 필드만.
+// 렌디 데이터 모델 — 기준: design/spec/기능명세서.md v3.2 부록 D(상태) · G(엔티티)
+// enum 값은 docs/api/openapi.yaml · packages/shared/src/types/enums.ts 와 1:1
+// 규칙(부록 G): 모든 테이블 createdAt/updatedAt, 상태가 있는 것은 StatusHistory 기록, 결제·정산 기록은 지우지 않는다.
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DATABASE_URL_UNPOOLED") // Vercel + Neon: 마이그레이션은 풀링 안 된 연결로
 }
 
+// ============================================================ enums
+
 enum Category {
-  SEASONAL
-  LAUNDRY
-  KITCHEN
-  ELECTRONICS
-  HEATING
+  KITCHEN // 주방
+  LAUNDRY // 세탁·건조
+  SEASONAL // 계절
+  AIR // 가습·공기
 }
 
 enum PriceType {
@@ -26,7 +29,11 @@ enum PriceType {
 enum DeviceSource {
   NEW
   BUYBACK
-  USED
+}
+
+enum Grade {
+  A
+  B
 }
 
 enum ProtectionPlan {
@@ -35,27 +42,97 @@ enum ProtectionPlan {
   FULL
 }
 
+enum DeliveryMethod {
+  DOOR // 문 앞 지정일
+  HUB // 거점 수령
+}
+
+enum OrderStatus {
+  PENDING_PAYMENT
+  PAID
+  CANCELED
+  EXPIRED
+}
+
 enum RentalStatus {
-  SCHEDULED
-  ACTIVE
+  PREPARING
+  SHIPPING
+  AT_HUB
+  IN_USE
   RETURN_REQUESTED
-  RETURNED
-  CLOSED
+  PICKUP_SCHEDULED
+  PICKED_UP
+  JUDGING
+  JUDGED
+  ENDED
+  CANCELED
+  SWAPPED
 }
 
-enum InspectionStage {
-  OUTBOUND // 8-1 운영자 출고 6면
-  RECEIVED // 8-2 고객 받은 날
-  RETURN // 4-4 / 8-3 고객 반납
+enum DeviceStatus {
+  INTAKE
+  MAINTENANCE
+  AVAILABLE
+  RESERVED
+  RENTED
+  RETRIEVING
+  INSPECTING
+  SOLD
+  DISPOSED
 }
 
-enum InspectionStatus {
-  CAPTURING
-  ANALYZING
+enum BuybackStatus {
+  QUOTED
+  PICKUP_SCHEDULED
+  PICKED_UP
+  INSPECTING
+  AWAITING_CONSENT
+  PAID
+  REJECTED
+  QUOTE_EXPIRED
+  CANCELED
+}
+
+enum BuybackCondition {
+  LIKE_NEW
+  WEAR
+  VISIBLE_DAMAGE
+}
+
+enum JudgementStatus {
   PRELIMINARY // AI 예비 판정
-  NEEDS_REVIEW // 기준 근처·신뢰도 낮음
-  FINAL // 운영자 최종 판정
+  FINAL_NOTIFIED // 운영자 최종 판정 · 이의 기간 48시간
   DISPUTED
+  CONFIRMED
+  CHARGED
+}
+
+enum DamageClass {
+  NONE
+  NATURAL_FAILURE
+  WEAR
+  CONSUMABLE
+  FAULT
+  LOSS
+  INTENTIONAL
+}
+
+enum Confidence {
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum FindingSource {
+  AI
+  OPERATOR
+}
+
+enum PhotoPurpose {
+  OUTBOUND
+  RECEIVED
+  RETURN
+  BUYBACK
 }
 
 enum PhotoSide {
@@ -67,229 +144,685 @@ enum PhotoSide {
   OPERATING
 }
 
-enum DamageClass {
-  NONE
-  WEAR // 생활 마모
-  FAULT // 과실 파손
-  LOSS_OR_INTENTIONAL
+enum WaitlistStatus {
+  WAITING
+  NOTIFIED
+  PAID
+  TIMED_OUT
+  CANCELED
 }
 
-enum DeliveryMethod {
-  HUB_PICKUP
-  SCHEDULED_DELIVERY
+enum PaymentKind {
+  FIRST
+  INSTALLMENT
+  WEEK_EXTENSION
+  DELIVERY_FEE
+  DAMAGE_CHARGE
 }
 
-model User {
-  id            String    @id @default(cuid())
-  name          String
-  phone         String    @unique
-  phoneVerified Boolean   @default(false)
-  birth         String?
-  isAdmin       Boolean   @default(false)
-  neighborhood  String?
-  stayPlan      String? // 1-4 지낼 기간
-  schoolId      String?
-  school        School?   @relation(fields: [schoolId], references: [id])
-  referralCode  String?   @unique
-  createdAt     DateTime  @default(now())
-  orders        Order[]
-  rentals       Rental[]
-  coupons       Coupon[]
-  waitlist      WaitlistEntry[]
-  disputes      Dispute[]
+enum PaymentStatus {
+  SCHEDULED
+  PAID
+  FAILED_1
+  FAILED_2
+  FAILED_3_OVERDUE
 }
+
+enum CouponKind {
+  FIRST_MONTH_50
+  REFERRAL
+  FREE_DELIVERY
+  EXTENSION
+}
+
+enum MemberCouponStatus {
+  ISSUED
+  USED
+  EXPIRED
+}
+
+enum SchoolVerificationMethod {
+  EMAIL
+  STUDENT_CARD
+}
+
+enum SchoolVerificationStatus {
+  CODE_SENT
+  VERIFIED
+  CARD_PENDING
+  REJECTED
+}
+
+enum GuideStatus {
+  DRAFT
+  REVIEW
+  PUBLISHED
+  UNPUBLISHED
+}
+
+enum DeliveryTaskKind {
+  DELIVERY
+  PICKUP
+  SWAP
+  BUYBACK_PICKUP
+}
+
+enum DeliveryTaskStatus {
+  PLANNED
+  DEPARTED
+  DELIVERED
+  HUB_STORED
+  PICKED_UP
+  FAILED
+}
+
+enum WorkKind {
+  CLEANING
+  CONSUMABLE
+  OPERATION_CHECK
+  ELECTRICAL_SAFETY
+  REPAIR
+}
+
+// ============================================================ 회원 · 인증
+
+model Member {
+  id              String    @id @default(cuid())
+  name            String
+  phone           String    @unique
+  birth6          String
+  isAdmin         Boolean   @default(false)
+  neighborhood    String?
+  stayPlan        String? // M2_3 | M4_6 | Y1_PLUS | LEAVING_SOON
+  interests       Category[]
+  marketingAgreed Boolean   @default(false)
+  withdrawnAt     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  agreements          MemberAgreement[]
+  schoolVerifications SchoolVerification[]
+  invitesSent         Invite[]             @relation("inviter")
+  inviteReceived      Invite?              @relation("invitee")
+  inviteCode          String?              @unique
+  coupons             MemberCoupon[]
+  cartItems           CartItem[]
+  orders              Order[]
+  rentals             Rental[]
+  paymentMethods      PaymentMethod[]
+  waitlist            WaitlistEntry[]
+  buybacks            Buyback[]
+  reviews             Review[]
+  wishlist            Wish[]
+  consultations       Consultation[]
+  notifications       Notification[]
+}
+
+model MemberAgreement {
+  id        String   @id @default(cuid())
+  memberId  String
+  member    Member   @relation(fields: [memberId], references: [id])
+  kind      String // TERMS | PRIVACY | DAMAGE_POLICY | MARKETING
+  agreed    Boolean
+  agreedAt  DateTime @default(now())
+}
+
+// AUTH-03/04 인증번호 (60초 쿨다운, 하루 5회, 3분 유효, 5회 오입력)
+model OtpRequest {
+  id         String   @id @default(cuid())
+  phone      String
+  codeHash   String
+  attempts   Int      @default(0)
+  expiresAt  DateTime
+  verifiedAt DateTime?
+  createdAt  DateTime @default(now())
+
+  @@index([phone, createdAt])
+}
+
+// ============================================================ 학교 · 마케팅
 
 model School {
-  id          String @id @default(cuid())
-  name        String @unique
-  emailDomain String
-  goal        Int    @default(300)
-  users       User[]
+  id             String  @id @default(cuid())
+  name           String  @unique
+  emailDomain    String
+  abbreviation   String  @unique // 초대 코드 접두어 (SS-K7Q2)
+  achievedStages Int[] // [100, 200]
+  nearestHub     String?
+  seasonBonusFrom DateTime? // MKT-06 종강·입대 시즌 매입 +10%
+  seasonBonusTo   DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  verifications SchoolVerification[]
 }
+
+model SchoolVerification {
+  id           String                   @id @default(cuid())
+  memberId     String
+  member       Member                   @relation(fields: [memberId], references: [id])
+  schoolId     String
+  school       School                   @relation(fields: [schoolId], references: [id])
+  method       SchoolVerificationMethod
+  status       SchoolVerificationStatus
+  email        String?
+  codeHash     String?
+  attempts     Int                      @default(0)
+  expiresAt    DateTime?
+  cardPhotoUrl String? // 확인 후 즉시 삭제(null)
+  rejectReason String?
+  verifiedAt   DateTime?
+  utm          String?
+  createdAt    DateTime                 @default(now())
+  updatedAt    DateTime                 @updatedAt
+
+  @@index([schoolId, status])
+}
+
+model Invite {
+  id         String   @id @default(cuid())
+  inviterId  String
+  inviter    Member   @relation("inviter", fields: [inviterId], references: [id])
+  inviteeId  String   @unique
+  invitee    Member   @relation("invitee", fields: [inviteeId], references: [id])
+  code       String
+  rewarded   Boolean  @default(false)
+  createdAt  DateTime @default(now())
+}
+
+model MemberCoupon {
+  id         String             @id @default(cuid())
+  memberId   String
+  member     Member             @relation(fields: [memberId], references: [id])
+  kind       CouponKind
+  issuedBy   String // SCHOOL_VERIFIED | REFERRAL | END_MINUS_7 | SCHOOL_100
+  rentalId   String? // 연장 쿠폰: 렌탈당 1장
+  issuedAt   DateTime           @default(now())
+  expiresAt  DateTime
+  status     MemberCouponStatus @default(ISSUED)
+  usedPaymentId String?
+  usedAt     DateTime?
+  updatedAt  DateTime           @updatedAt
+
+  @@index([memberId, status])
+}
+
+// ============================================================ 품목 · 기기
 
 model Product {
-  id          String    @id @default(cuid())
-  name        String // 제습기 10L
-  model       String? // SDH-10
-  category    Category
-  newPriceKrw Int? // 새로 사면 (절약 리포트)
-  specs       Json? // 방 크기, 소음, 전기요금 등 비교표용
-  reviewSummary Json? // LLM 요약 결과 캐시
-  imageUrl    String?
-  prices      ProductPrice[]
-  devices     Device[]
-  waitlist    WaitlistEntry[]
+  key              String    @id // food-waste-disposer | mini-dryer | dehumidifier | humidifier
+  name             String
+  aliases          String[] // RENT-03 검색
+  category         Category
+  officialPriceKrw Int
+  standardMonthlyKrw Int
+  valueMonthlyKrw  Int? // null = 실속형 없음
+  lifespanMonths   Int
+  consumables      String? // 소모품 · 교체 주기
+  specs            Json? // 방 크기 · 용량 · 한 달 전기요금 · 치수(mm, AI 길이 환산용)
+  imageUrl         String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  devices    Device[]
+  aiSummary  ProductAiSummary?
+  waitlist   WaitlistEntry[]
+  guides     Guide[]
+  wishes     Wish[]
 }
 
-model ProductPrice {
-  id           String    @id @default(cuid())
-  productId    String
-  product      Product   @relation(fields: [productId], references: [id])
-  priceType    PriceType
-  monthlyKrw   Int
-
-  @@unique([productId, priceType])
-}
-
-// 개별 기기 — QR 이력 단위
 model Device {
-  id             String       @id @default(cuid())
-  code           String       @unique // D-0412
-  productId      String
-  product        Product      @relation(fields: [productId], references: [id])
-  source         DeviceSource
-  grade          String // A | B
-  priceType      PriceType
-  conditionScore Int          @default(100)
-  releasedYear   Int?
-  acquiredAt     DateTime
-  lastCleanedAt  DateTime?
-  residualValueKrw Int        @default(0)
-  rentals        Rental[]
-  inspections    Inspection[]
+  id               String       @id @default(cuid())
+  code             String       @unique // QR · D-0412
+  productKey       String
+  product          Product      @relation(fields: [productKey], references: [key])
+  source           DeviceSource
+  grade            Grade
+  priceType        PriceType
+  releasedMonth    DateTime // 출시 연월 (실속형 전환·잔존가치)
+  acquiredMonth    DateTime // 매입(입고) 연월 — 배정 순서
+  purchasePriceKrw Int?
+  conditionScore   Int          @default(100)
+  status           DeviceStatus @default(INTAKE)
+  reservedUntil    DateTime?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  workLogs   DeviceWorkLog[]
+  photos     Photo[]
+  rentals    Rental[]
+  judgements Judgement[]
+  buyback    Buyback?
+
+  @@index([productKey, priceType, status, acquiredMonth])
+}
+
+model DeviceWorkLog {
+  id         String   @id @default(cuid())
+  deviceId   String
+  device     Device   @relation(fields: [deviceId], references: [id])
+  kind       WorkKind
+  passed     Boolean
+  memo       String?
+  photoUrls  String[]
+  workerId   String
+  workedAt   DateTime @default(now())
+}
+
+// 사진 하나 = 대상(기기·렌탈·매입) + 용도 + 부위. URL은 Vercel Blob
+model Photo {
+  id           String       @id @default(cuid())
+  deviceId     String?
+  device       Device?      @relation(fields: [deviceId], references: [id])
+  rentalId     String?
+  rental       Rental?      @relation(fields: [rentalId], references: [id])
+  buybackId    String?
+  buyback      Buyback?     @relation(fields: [buybackId], references: [id])
+  purpose      PhotoPurpose
+  side         PhotoSide
+  url          String
+  retakeHint   String?
+  uploadedById String
+  takenAt      DateTime     @default(now())
+
+  findings Finding[]
+
+  @@index([deviceId, purpose])
+  @@index([rentalId, purpose])
+}
+
+// 흠집 1개. AI가 찾은 것 + 운영자 판정 = 재학습 데이터 1줄
+model Finding {
+  id             String        @id @default(cuid())
+  photoId        String
+  photo          Photo         @relation(fields: [photoId], references: [id])
+  judgementId    String?
+  judgement      Judgement?    @relation(fields: [judgementId], references: [id])
+  source         FindingSource
+  side           PhotoSide
+  bbox           Json // [x, y, w, h] 0~1
+  lengthMm       Float
+  dentOrBreak    Boolean       @default(false)
+  preexisting    Boolean       @default(false)
+  aiClass        DamageClass?
+  aiConfidence   Float?
+  confidence     Confidence?
+  needsReview    Boolean       @default(false)
+  finalClass     DamageClass?
+  finalLengthMm  Float?
+  overrideReason String? // AI와 다르면 필수
+  reviewedById   String?
+  reviewedAt     DateTime?
+  usedForTraining Boolean      @default(false)
+  createdAt      DateTime      @default(now())
+}
+
+// ============================================================ 주문 · 렌탈 · 결제
+
+model CartItem {
+  id         String         @id @default(cuid())
+  memberId   String
+  member     Member         @relation(fields: [memberId], references: [id])
+  productKey String
+  priceType  PriceType
+  months     Int
+  protection ProtectionPlan
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
 }
 
 model Order {
-  id          String         @id @default(cuid())
-  userId      String
-  user        User           @relation(fields: [userId], references: [id])
-  months      Int
-  startDate   DateTime
-  delivery    DeliveryMethod
-  payTodayKrw Int
-  createdAt   DateTime       @default(now())
-  rentals     Rental[]
-  coupons     Coupon[]
+  id                String         @id @default(cuid())
+  orderNo           String         @unique // R-YYYYMMDD-0001
+  memberId          String
+  member            Member         @relation(fields: [memberId], references: [id])
+  receiveDate       DateTime       @db.Date
+  delivery          DeliveryMethod
+  address           String?
+  hubId             String?
+  deliveryFeeKrw    Int
+  couponDiscountKrw Int            @default(0)
+  firstPaymentKrw   Int
+  status            OrderStatus    @default(PENDING_PAYMENT)
+  reservedUntil     DateTime?
+  cancelReason      String?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  rentals  Rental[]
+  payments Payment[]
 }
 
 model Rental {
   id                String         @id @default(cuid())
   orderId           String
   order             Order          @relation(fields: [orderId], references: [id])
-  userId            String
-  user              User           @relation(fields: [userId], references: [id])
+  memberId          String
+  member            Member         @relation(fields: [memberId], references: [id])
   deviceId          String
   device            Device         @relation(fields: [deviceId], references: [id])
+  productKey        String
   priceType         PriceType
   monthlyKrw        Int
+  firstMonthKrw     Int
+  months            Int
+  startDate         DateTime       @db.Date
+  endDate           DateTime       @db.Date
   protection        ProtectionPlan
-  faultCoverUsed    Boolean        @default(false) // 완전 안심 렌탈당 1회
-  startDate         DateTime
-  endDate           DateTime
-  status            RentalStatus   @default(SCHEDULED)
+  coverageUsed      Boolean        @default(false) // 보장 렌탈당 1회
+  weekExtensionsUsed Int           @default(0)
+  overdue           Boolean        @default(false)
   receivedCheckDone Boolean        @default(false)
-  inspections       Inspection[]
+  receivedAt        DateTime?
+  previousRentalId  String?        @unique // 교체 시
+  previousRental    Rental?        @relation("swap", fields: [previousRentalId], references: [id])
+  nextRental        Rental?        @relation("swap")
+  status            RentalStatus   @default(PREPARING)
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  photos        Photo[]
+  payments      Payment[]
+  extensions    Extension[]
+  returnRequest ReturnRequest?
+  judgement     Judgement?
+  review        Review?
+  deliveryTasks DeliveryTask[]
+  issueReports  ReceivedIssue[]
+
+  @@index([memberId, status])
 }
 
-model Inspection {
-  id                   String           @id @default(cuid())
-  stage                InspectionStage
-  status               InspectionStatus @default(CAPTURING)
+model ReceivedIssue {
+  id        String   @id @default(cuid())
+  rentalId  String
+  rental    Rental   @relation(fields: [rentalId], references: [id])
+  kind      String // NEW_DAMAGE | NOT_WORKING | MISSING_PART | OTHER
+  memo      String?
+  replacementDate DateTime? @db.Date
+  createdAt DateTime @default(now())
+}
+
+model PaymentMethod {
+  id         String   @id @default(cuid())
+  memberId   String
+  member     Member   @relation(fields: [memberId], references: [id])
+  provider   String // KAKAOPAY | TOSSPAY | CARD
+  billingKey String
+  display    String
+  isDefault  Boolean  @default(false)
+  deletedAt  DateTime?
+  createdAt  DateTime @default(now())
+}
+
+// 지우지 않는다
+model Payment {
+  id          String        @id @default(cuid())
+  kind        PaymentKind
+  orderId     String?
+  order       Order?        @relation(fields: [orderId], references: [id])
+  rentalId    String?
+  rental      Rental?       @relation(fields: [rentalId], references: [id])
+  installment Int? // 회차
+  dueDate     DateTime      @db.Date
+  amountKrw   Int
+  attempts    Int           @default(0)
+  pgTxId      String?
+  status      PaymentStatus @default(SCHEDULED)
+  paidAt      DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([status, dueDate])
+}
+
+model Extension {
+  id          String   @id @default(cuid())
+  rentalId    String
+  rental      Rental   @relation(fields: [rentalId], references: [id])
+  unit        String // MONTH | WEEK
+  quantity    Int
+  prevEndDate DateTime @db.Date
+  newEndDate  DateTime @db.Date
+  amountKrw   Int
+  couponId    String?
+  createdAt   DateTime @default(now())
+}
+
+model DeliveryTask {
+  id        String             @id @default(cuid())
+  kind      DeliveryTaskKind
+  date      DateTime           @db.Date
+  express   Boolean            @default(false)
+  address   String?
+  hubId     String?
+  rentalId  String?
+  rental    Rental?            @relation(fields: [rentalId], references: [id])
+  buybackId String?
+  buyback   Buyback?           @relation(fields: [buybackId], references: [id])
+  assignee  String?
+  status    DeliveryTaskStatus @default(PLANNED)
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+
+  @@index([date, kind])
+}
+
+model ReturnRequest {
+  id         String   @id @default(cuid())
+  rentalId   String   @unique
+  rental     Rental   @relation(fields: [rentalId], references: [id])
+  pickupDate DateTime @db.Date
+  express    Boolean  @default(false)
+  place      String // DOOR | HUB
+  address    String?
+  createdAt  DateTime @default(now())
+}
+
+// ============================================================ 파손 판정
+
+model Judgement {
+  id                   String          @id @default(cuid())
+  rentalId             String          @unique
+  rental               Rental          @relation(fields: [rentalId], references: [id])
   deviceId             String
-  device               Device           @relation(fields: [deviceId], references: [id])
-  rentalId             String?
-  rental               Rental?          @relation(fields: [rentalId], references: [id])
-  inspectorId          String? // 운영자 (OUTBOUND, 최종 판정)
-  operatingTest        String? // PASS | FAIL
-  repairCostKrw        Int?
-  conditionScoreBefore Int?
-  conditionScoreAfter  Int?
-  preliminaryChargeKrw Int?
-  finalChargeKrw       Int?
-  modelVersion         String? // ai/vision 응답의 모델 버전
+  device               Device          @relation(fields: [deviceId], references: [id])
+  status               JudgementStatus @default(PRELIMINARY)
+  // AI 예비
+  aiClass              DamageClass?
+  aiConfidence         Confidence?
+  aiEstimatedChargeKrw Int?
+  modelVersion         String?
   analyzedAt           DateTime?
+  scoreBefore          Int?
+  scoreAfter           Int?
+  // 운영자 최종
+  operatingTest        String? // PASS | FAIL
+  finalClass           DamageClass?
+  repairCostKrw        Int?
+  residualValueKrw     Int?
+  customerChargeKrw    Int?
+  judgedById           String?
   finalizedAt          DateTime?
   disputeDeadline      DateTime?
-  createdAt            DateTime         @default(now())
-  photos               InspectionPhoto[]
-  findings             DamageFinding[]
-  disputes             Dispute[]
-}
+  confirmedAt          DateTime?
+  chargedPaymentId     String?
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
 
-model InspectionPhoto {
-  id           String     @id @default(cuid())
-  inspectionId String
-  inspection   Inspection @relation(fields: [inspectionId], references: [id])
-  side         PhotoSide
-  url          String
-  retakeHint   String?
-  createdAt    DateTime   @default(now())
+  findings Finding[]
+  disputes Dispute[]
 
-  @@unique([inspectionId, side])
-}
-
-// AI가 찾은 흠 + 운영자 판정 = 재학습 데이터 한 줄
-model DamageFinding {
-  id             String       @id @default(cuid())
-  inspectionId   String
-  inspection     Inspection   @relation(fields: [inspectionId], references: [id])
-  side           PhotoSide
-  bbox           Json // [x, y, w, h] 0~1
-  lengthMm       Float
-  preexisting    Boolean      @default(false)
-  aiClass        DamageClass
-  aiConfidence   Float
-  needsReview    Boolean      @default(false)
-  finalClass     DamageClass?
-  overrideReason String? // AI와 다르게 고칠 때 필수
-  reviewedById   String?
-  reviewedAt     DateTime?
-  usedForTraining Boolean     @default(false)
+  @@index([status, aiConfidence])
 }
 
 model Dispute {
-  id           String     @id @default(cuid())
-  inspectionId String
-  inspection   Inspection @relation(fields: [inspectionId], references: [id])
-  userId       String
-  user         User       @relation(fields: [userId], references: [id])
-  reason       String
-  resolvedAt   DateTime?
-  createdAt    DateTime   @default(now())
+  id          String    @id @default(cuid())
+  judgementId String
+  judgement   Judgement @relation(fields: [judgementId], references: [id])
+  content     String
+  result      String?
+  dueBy       DateTime // 3영업일
+  resolvedAt  DateTime?
+  createdAt   DateTime  @default(now())
 }
 
-// ---- P1 / P2 (최소 필드) ----
+// ============================================================ 대기 · 매입 · 콘텐츠
 
 model WaitlistEntry {
-  id        String     @id @default(cuid())
-  userId    String
-  user      User       @relation(fields: [userId], references: [id])
-  productId String
-  product   Product    @relation(fields: [productId], references: [id])
-  priceType PriceType?
-  wantFrom  String? // 이번 달 | 다음 달 | 상관없음
-  createdAt DateTime   @default(now())
+  id               String         @id @default(cuid())
+  memberId         String
+  member           Member         @relation(fields: [memberId], references: [id])
+  productKey       String
+  product          Product        @relation(fields: [productKey], references: [key])
+  wantFrom         String // THIS_MONTH | NEXT_MONTH | ANY
+  priceType        PriceType?
+  priority         Boolean        @default(false) // 200명 달성 학교
+  assignedDeviceId String?
+  notifiedAt       DateTime?
+  holdUntil        DateTime?
+  status           WaitlistStatus @default(WAITING)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  @@unique([memberId, productKey])
 }
 
-model Coupon {
-  id        String    @id @default(cuid())
-  userId    String
-  user      User      @relation(fields: [userId], references: [id])
-  kind      String // FIRST_MONTH_50 | FREE_DELIVERY | EXTENSION | REFERRAL
-  valueKrw  Int
-  expiresAt DateTime?
-  usedAt    DateTime?
-  orderId   String?
-  order     Order?    @relation(fields: [orderId], references: [id])
+model Buyback {
+  id             String           @id @default(cuid())
+  sellerId       String
+  seller         Member           @relation(fields: [sellerId], references: [id])
+  productKey     String
+  purchasedMonth DateTime
+  condition      BuybackCondition
+  eligible       Boolean
+  ineligibleReason String?
+  quoteKrw       Int?
+  quoteMinKrw    Int?
+  quoteMaxKrw    Int?
+  rate           Float?
+  rendyUserBonus Boolean          @default(false)
+  seasonBonus    Boolean          @default(false)
+  quoteExpiresAt DateTime?
+  inspection     Json? // 항목별 결과
+  grade          Grade?
+  finalPriceKrw  Int?
+  bankAccount    Json?
+  pickupDate     DateTime?        @db.Date
+  leavingReason  String?
+  paidAt         DateTime?
+  deviceId       String?          @unique // 입금 후 재고 등록된 기기
+  device         Device?          @relation(fields: [deviceId], references: [id])
+  status         BuybackStatus    @default(QUOTED)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  photos        Photo[]
+  deliveryTasks DeliveryTask[]
+}
+
+model Review {
+  id          String   @id @default(cuid())
+  rentalId    String   @unique
+  rental      Rental   @relation(fields: [rentalId], references: [id])
+  memberId    String
+  member      Member   @relation(fields: [memberId], references: [id])
+  rating      Int
+  content     String?
+  reason      String?
+  rewardGiven Boolean  @default(false)
+  createdAt   DateTime @default(now())
+}
+
+model Wish {
+  memberId   String
+  member     Member  @relation(fields: [memberId], references: [id])
+  productKey String
+  product    Product @relation(fields: [productKey], references: [key])
+  createdAt  DateTime @default(now())
+
+  @@id([memberId, productKey])
+}
+
+model Diagnosis {
+  shareCode  String   @id
+  answers    Json
+  typeName   String
+  bundle     Json
+  createdAt  DateTime @default(now())
+}
+
+model Consultation {
+  id             String   @id @default(cuid())
+  memberId       String
+  member         Member   @relation(fields: [memberId], references: [id])
+  messages       Json // 최대 30개
+  conditions     Json?
+  recommendation Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model ProductAiSummary {
+  productKey  String   @id
+  product     Product  @relation(fields: [productKey], references: [key])
+  reasons     Json
+  pros        String?
+  cons        String?
+  bestFor     String?
+  quote       String?
+  reviewCount Int
+  computedAt  DateTime
 }
 
 model Guide {
-  id          String    @id @default(cuid())
-  slug        String    @unique
+  id          String      @id @default(cuid())
+  slug        String      @unique
+  productKey  String
+  product     Product     @relation(fields: [productKey], references: [key])
   title       String
-  body        Json // 구매 이유 · 비교표 · 후기 요약 · 결론 블록
-  aiDraft     Boolean   @default(true)
+  keywords    String[]
+  body        Json
+  status      GuideStatus @default(DRAFT)
+  reviewerId  String?
   publishedAt DateTime?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
 }
 
-model BuybackRequest {
-  id           String   @id @default(cuid())
-  userId       String
-  productName  String
-  ageBucket    String
-  quoteMinKrw  Int?
-  quoteMaxKrw  Int?
-  finalKrw     Int?
-  status       String   @default("QUOTED") // QUOTED | PICKUP | INSPECTED | PAID | REJECTED
-  createdAt    DateTime @default(now())
+// ============================================================ 공통 기록
+
+// SYS-10 AI 실행 기록
+model AiRun {
+  id        String   @id @default(cuid())
+  feature   String // GUIDE_REASONS | COMPARE | REVIEW_SUMMARY | SAVINGS | CONSULT | PHOTO_COMPARE | PRODUCT_DRAFT | GUIDE_DRAFT
+  input     Json
+  output    Json?
+  model     String
+  costUsd   Float?
+  success   Boolean
+  createdAt DateTime @default(now())
+}
+
+model Notification {
+  id       String   @id @default(cuid())
+  memberId String
+  member   Member   @relation(fields: [memberId], references: [id])
+  kind     String
+  channel  String // ALIMTALK | SMS | WEB
+  sentAt   DateTime @default(now())
+  result   String
+}
+
+// SYS-01 상태 변경 기록 (주문·렌탈·기기·매입·판정·대기 공통)
+model StatusHistory {
+  id        String   @id @default(cuid())
+  entity    String // ORDER | RENTAL | DEVICE | BUYBACK | JUDGEMENT | WAITLIST | SCHOOL_VERIFICATION
+  entityId  String
+  from      String?
+  to        String
+  changedBy String // 회원 id · 운영자 id · SYSTEM
+  changedAt DateTime @default(now())
+
+  @@index([entity, entityId])
 }
