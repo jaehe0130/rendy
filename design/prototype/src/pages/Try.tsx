@@ -104,7 +104,7 @@ export default function Try() {
             <span className="faint">결과가 여기에 나와요.</span>
           )}
           <hr className="rule" />
-          <span className="faint" style={{ fontSize: 12 }}>실제 모델(PatchCore)이 돌아가요. 렌디에서는 AI가 후보만 표시하고 최종 판정은 운영자가 해요.</span>
+          <span className="faint" style={{ fontSize: 12 }}>AI는 후보만 표시하고, 최종 판정은 운영자가 해요.</span>
           <Link to="/admin/judge?demo" className="btn line sm" style={{ alignSelf: 'flex-start' }}>운영자 판정 화면 보기</Link>
         </div>
       </div>
