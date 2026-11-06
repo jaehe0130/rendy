@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import { planOf, productById, won } from '../data'
 import { Bar, Modal, Toast, ProductArt } from '../components'
+import { ReturnCompare } from '../ReturnCompare'
 import { useStore, dday, iso, addDays, addMonths, type Rental } from '../store'
 
 export function Upload({ label, onFile }: { label: string; onFile?: (f: File) => void }) {
@@ -21,8 +22,7 @@ export default function My() {
   const [ext, setExt] = useState<Rental | null>(openQ === 'extend' ? rentals[0] ?? null : null)
   const [extM, setExtM] = useState(1)
   const [ret, setRet] = useState<Rental | null>(openQ === 'return' ? rentals[0] ?? null : null)
-  const [photos, setPhotos] = useState<File[]>([])
-  const [judge, setJudge] = useState<'idle' | 'loading' | 'done'>(openQ === 'return' ? 'done' : 'idle')
+  const [judge, setJudge] = useState<'idle' | 'loading' | 'done'>('idle')
   const [toast, setToast] = useState('')
   const [checked, setChecked] = useState<string[]>([]) // 받은 날 상태 확인을 마친 렌탈
   const [recv, setRecv] = useState<Rental | null>(openQ === 'receive' ? rentals[1] ?? rentals[0] ?? null : null)
@@ -31,7 +31,7 @@ export default function My() {
   const flash = (m: string) => { setToast(m); setTimeout(() => setToast(''), 1800) }
   const active = rentals.filter((r) => r.status !== '회수 완료')
   const newest = active.filter((r) => r.status === '사용 중' && !checked.includes(r.id)).sort((a, b) => b.start.localeCompare(a.start))[0]
-  const closeRet = () => { setRet(null); setPhotos([]); setJudge('idle') }
+  const closeRet = () => { setRet(null); setJudge('idle') }
   const newEnd = ext ? iso(addMonths(addDays(new Date(ext.end), 1), extM)) : ''
 
   return (
@@ -118,9 +118,11 @@ export default function My() {
               <h3 className="serif" style={{ fontSize: 26 }}>반납 신청</h3>
               <p className="muted" style={{ fontSize: 14 }}>{productById(ret.productId)!.name} · 일찍 반납해도 처음 고른 기간의 요금은 그대로예요.</p>
               <div className="field"><label>회수 날짜</label><div className="chips">{['다음 배송일 (화)', '그다음 (금)'].map((x, i) => <span key={x} className={`chip ${i === 0 ? 'on' : ''}`}>{x}</span>)}</div></div>
-              <div className="row gap-8"><span className="badge orange">AI</span><b style={{ fontSize: 14 }}>지금 상태 사진 3장 · 출고 사진과 비교</b></div>
-              <div className="grid g3" style={{ gap: 8, gridTemplateColumns: 'repeat(3,1fr)' }}>{['정면', '옆면', '작동 화면'].map((x) => <Upload key={x} label={x} onFile={(f) => setPhotos((ps) => [...ps, f])} />)}</div>
-              <button className="btn block" disabled={photos.length < 3 || judge === 'loading'} onClick={() => { setJudge('loading'); setTimeout(() => setJudge('done'), 1400) }}>{judge === 'loading' ? 'AI가 출고 사진과 비교하는 중…' : `사진 올리고 AI 확인 (${photos.length}/3)`}</button>
+              <b style={{ fontSize: 14 }}>반납 사진 · AI가 출고 사진과 비교해요</b>
+              {/* 실제 흠집 모델로 출고 사진(렌디 촬영) ↔ 반납 사진 비교 → 예비 판정 후 반납 확정 */}
+              <ReturnCompare plan={ret.plan} actions={() => (
+                <div className="row gap-8"><button className="btn line" onClick={() => { closeRet(); flash('이의 신청을 접수했어요. 3영업일 안에 다시 판정해요') }}>이의 신청</button><button className="btn" style={{ flex: 1 }} onClick={() => { requestReturn(ret.id); closeRet(); flash('반납 신청 완료. 회수 후 운영자가 최종 판정해요') }}>반납 확정</button></div>
+              )} />
             </div>
           ) : (
             <div className="stack gap-12">

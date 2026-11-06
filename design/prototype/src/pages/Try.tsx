@@ -1,134 +1,22 @@
-import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { ReturnCompare } from '../ReturnCompare'
 
-// 심사위원 체험: 실제 흠집 비교 모델(PatchCore, Modal)에 전/후 사진을 보내 새로 생긴 부분을 찾는다.
-// 결과는 예비 — 렌디에서는 최종 판정을 운영자가 한다.
-const VISION_URL = (import.meta.env.VITE_VISION_URL as string | undefined) || 'https://seongwon20--rendy-vision-web.us-east.modal.run'
-
-interface Finding { bbox: number[]; lengthMm: number; confidence: number; suggestedClass: 'WEAR' | 'FAULT'; needsReview: boolean }
-interface Res { aligned: boolean; findings: Finding[]; image: string | null; ms: number; wearThresholdMm: number }
-
-// 올리기 전에 긴 변 768px JPEG로 줄임 (전송 빠르게)
-function shrink(file: Blob): Promise<string> {
-  return new Promise((ok, fail) => {
-    const img = new Image()
-    img.onload = () => {
-      const s = Math.min(1, 768 / Math.max(img.width, img.height))
-      const c = document.createElement('canvas'); c.width = Math.round(img.width * s); c.height = Math.round(img.height * s)
-      c.getContext('2d')!.drawImage(img, 0, 0, c.width, c.height)
-      ok(c.toDataURL('image/jpeg', 0.85))
-    }
-    img.onerror = fail
-    img.src = URL.createObjectURL(file)
-  })
-}
-
-function Shot({ n, label, url, onPick }: { n: string; label: string; url: string; onPick: (f: File) => void }) {
-  return (
-    <label className="try-shot">
-      {url ? <img src={url} alt={label} /> : <span><b>{n}</b>{label}<small className="faint">찍기 · 앨범에서 고르기</small></span>}
-      <input type="file" accept="image/*" onChange={(e) => { const f = e.target.files?.[0]; if (f) onPick(f) }} />
-    </label>
-  )
-}
-
-// 비교할 가전이 없을 때 쓰는 예시 사진 (제습기 앞면)
-const AFTERS = [
-  { key: 'after-scratch', name: '긁힘' },
-  { key: 'after-tape', name: '테이프' },
-  { key: 'after-small', name: '작은 긁힘' },
-  { key: 'after-same', name: '변화 없음' },
-]
-
+// 심사위원 체험: 실제 반납 흐름 그대로 — 출고 사진은 렌디가 찍어 둔 것, 사용자는 반납 사진만 올려 AI 예비 판정을 받는다
 export default function Try() {
-  const [before, setBefore] = useState('')
-  const [after, setAfter] = useState('')
-  const [pickB, setPickB] = useState('')
-  const [pickA, setPickA] = useState('')
-  const [state, setState] = useState<'idle' | 'busy' | 'done' | 'error'>('idle')
-  const [slow, setSlow] = useState(false)
-  const [res, setRes] = useState<Res | null>(null)
-  const [err, setErr] = useState('')
-  const resultRef = useRef<HTMLDivElement>(null)
-
-  // 들어오자마자 AI 서버를 깨워 둠 (무료 서버라 쉬고 있으면 처음 응답이 느림)
-  useEffect(() => { fetch(`${VISION_URL}/healthz`).catch(() => {}) }, [])
-
-  const sample = async (n: string) => shrink(await (await fetch(`/samples/${n}.webp`)).blob())
-  const setB = (v: string, key = '') => { setBefore(v); setPickB(key); setRes(null); setState('idle') }
-  const setA = (v: string, key = '') => { setAfter(v); setPickA(key); setRes(null); setState('idle') }
-
-  const run = async () => {
-    setState('busy'); setSlow(false); setErr(''); setRes(null)
-    if (window.innerWidth < 860) resultRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    const t = setTimeout(() => setSlow(true), 8000)
-    try {
-      const r = await fetch(`${VISION_URL}/v1/demo/compare`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ before, after, widthCm: 30 }) })
-      if (!r.ok) throw new Error(`서버 응답 ${r.status}`)
-      setRes(await r.json()); setState('done')
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : '연결 실패'); setState('error')
-    } finally { clearTimeout(t) }
-  }
-
-  const top = res?.findings[0]
   return (
     <section className="section bg-surface try">
       <div className="stack gap-8" style={{ marginBottom: 20 }}>
         <span className="eyebrow">AI 반납 판정 체험</span>
-        <h1 className="serif" style={{ fontSize: 'clamp(28px,6vw,44px)' }}>AI 흠집 찾기, 직접 해 보세요</h1>
-        <p className="muted">빌리기 전 사진과 다 쓰고 난 뒤 사진을 넣으면, AI가 새로 생긴 흠집을 찾아요.</p>
+        <h1 className="serif" style={{ fontSize: 'clamp(28px,6vw,44px)' }}>반납 사진만 찍으면<br />AI가 비교해요</h1>
+        <p className="muted">렌디는 보내기 전에 기기를 찍어 둬요. 반납할 때 같은 각도로 찍으면 AI가 새로 생긴 흠집만 찾아요.</p>
       </div>
-
-      <div className="try-grid">
-        <div className="panel stack gap-12">
-          <div className="try-shots">
-            <Shot n="1" label="전 사진 (빌리기 전)" url={before} onPick={async (f) => setB(await shrink(f))} />
-            <Shot n="2" label="후 사진 (다 쓰고 나서)" url={after} onPick={async (f) => setA(await shrink(f))} />
+      <div className="panel try-card stack gap-16">
+        <ReturnCompare plan="safe" actions={() => (
+          <div className="row gap-8 wrap-row">
+            <Link to="/admin/judge?demo" className="btn">운영자 최종 판정 보기</Link>
+            <Link to="/my?demo" className="btn line">내 렌탈에서 반납해 보기</Link>
           </div>
-          <span className="faint" style={{ fontSize: 12 }}>같은 거리 · 같은 각도로 찍으면 잘 찾아요.</span>
-
-          <div className="try-samples2">
-            <b style={{ fontSize: 13 }}>비교할 가전이 없으시면 이 사진을 사용해 주세요</b>
-            <div className="try-thumbs">
-              <div className="stack gap-4">
-                <span className="faint" style={{ fontSize: 12 }}>전 사진</span>
-                <div className="row gap-8">
-                  <button className={`try-thumb ${pickB === 'before' ? 'on' : ''}`} onClick={async () => setB(await sample('before'), 'before')}><img src="/samples/before.webp" alt="예시 전 사진" /><span>제습기</span></button>
-                </div>
-              </div>
-              <div className="stack gap-4">
-                <span className="faint" style={{ fontSize: 12 }}>후 사진</span>
-                <div className="row gap-8 wrap-row">
-                  {AFTERS.map((x) => <button key={x.key} className={`try-thumb ${pickA === x.key ? 'on' : ''}`} onClick={async () => setA(await sample(x.key), x.key)}><img src={`/samples/${x.key}.webp`} alt={`예시 후 사진 · ${x.name}`} /><span>{x.name}</span></button>)}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <button className="btn block" disabled={!before || !after || state === 'busy'} onClick={run}>{state === 'busy' ? (slow ? 'AI 서버 깨우는 중… 최대 1분' : 'AI가 비교하는 중…') : 'AI로 비교하기'}</button>
-        </div>
-
-        <div ref={resultRef} className="panel stack gap-12" style={{ scrollMarginTop: 90 }}>
-          {state === 'done' && res ? (
-            <>
-              <img src={res.image && top ? res.image : after} alt={top ? 'AI가 찾은 부분' : '후 사진'} style={{ width: '100%', borderRadius: 4 }} />
-              <div className="row gap-8"><span className="badge solid">AI 예비 판정</span>{top && (top.needsReview || !res.aligned) && <span className="badge orange">운영자 확인 필요</span>}</div>
-              <b style={{ fontSize: 22 }}>{top ? `새로 생긴 흠집 ${res.findings.length}곳 · 약 ${(top.lengthMm / 10).toFixed(1)}cm` : '새로 생긴 흠집이 없어요'}</b>
-              <span className="muted">{!top || top.suggestedClass === 'WEAR' ? '생활 마모 → 고객 부담 0원' : '2cm 넘음 → 과실 파손 후보'}</span>
-              <span className="faint" style={{ fontSize: 12 }}>{res.aligned ? '' : '두 사진 각도가 많이 달라 맞추지 못했어요. · '}길이는 추정값 · {(res.ms / 1000).toFixed(1)}초</span>
-            </>
-          ) : state === 'busy' ? (
-            <b style={{ fontSize: 18 }}>{slow ? 'AI 서버 깨우는 중… 최대 1분' : 'AI가 사진을 비교하는 중…'}</b>
-          ) : state === 'error' ? (
-            <span className="muted">AI 서버에 연결하지 못했어요 ({err}). 잠시 뒤 다시 눌러 주세요.</span>
-          ) : (
-            <span className="faint">전 사진과 후 사진을 넣고 비교하면 결과가 여기에 나와요.</span>
-          )}
-          <hr className="rule" />
-          <span className="faint" style={{ fontSize: 12 }}>AI는 후보만 표시하고, 최종 판정은 운영자가 해요.</span>
-          <Link to="/admin/judge?demo" className="btn line sm" style={{ alignSelf: 'flex-start' }}>운영자 판정 화면 보기</Link>
-        </div>
+        )} />
       </div>
     </section>
   )

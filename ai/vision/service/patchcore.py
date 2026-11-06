@@ -31,7 +31,9 @@ IMAGE_SIZE = int(os.getenv("VISION_IMAGE_SIZE", "384"))
 VISIBLE_WIDTH_MM = float(os.getenv("VISION_VISIBLE_WIDTH_MM", "400"))
 PIX_K = float(os.getenv("VISION_PIX_K", "4.0"))        # 이상 지도 기준값 = 평균 + K × 표준편차
 MIN_AREA = int(os.getenv("VISION_MIN_AREA", "15"))     # 이보다 작은 덩어리는 잡음으로 봄 (px)
-PIX_ABS = float(os.getenv("VISION_PIX_ABS", "0"))       # 이상 점수 최소 기준 (변화가 없을 때 잡음이 걸리지 않게, 실제 사진으로 맞춤)
+PIX_ABS = float(os.getenv("VISION_PIX_ABS", "0"))
+# 이미지 전체 이상 점수 평균이 이보다 크면 "다른 물건 · 다른 장면"으로 봄 (합성 시험: 같은 물건 ≈0.22, 다른 사진 0.81~1.01)
+MISMATCH_MEAN = float(os.getenv("VISION_MISMATCH_MEAN", "0.45"))       # 이상 점수 최소 기준 (변화가 없을 때 잡음이 걸리지 않게, 실제 사진으로 맞춤)
 
 
 @dataclass
@@ -163,7 +165,9 @@ def _analyze(baseline: List[np.ndarray], current: np.ndarray, width_mm: float):
 
 def find_new_damage(baseline: List[np.ndarray], current: np.ndarray) -> Tuple[List[RawFinding], bool]:
     """기준 사진(같은 면) 대비 현재 사진에 새로 생긴 손상 후보. (후보 목록, 사진 맞추기 성공 여부)"""
-    found, ok, _, _ = _analyze(baseline, current, VISIBLE_WIDTH_MM)
+    found, ok, _, amap = _analyze(baseline, current, VISIBLE_WIDTH_MM)
+    if float(amap.mean()) > MISMATCH_MEAN:   # 다른 물건 · 다른 장면 → 판정하지 않고 다시 찍기 안내
+        return [], False
     return [f for f, _ in found], ok
 
 
@@ -178,7 +182,11 @@ def demo_compare(before: np.ndarray, after: np.ndarray, width_mm: float) -> dict
         x, y, w, h = (np.array(f.bbox) * IMAGE_SIZE).astype(int)
         cv2.rectangle(view, (x - 3, y - 3), (x + w + 3, y + h + 3), (47, 122, 255), 2)
     okj, jpg = cv2.imencode(".jpg", view, [cv2.IMWRITE_JPEG_QUALITY, 85])
+    mismatch = float(amap.mean()) > MISMATCH_MEAN
+    if mismatch:
+        found = []
     return {
+        "mismatch": mismatch,
         "stats": {"mean": round(float(amap.mean()), 4), "std": round(float(amap.std()), 4), "max": round(float(amap.max()), 4),
                   "peaks": [round(float(amap[c > 0].max()), 4) for _, c in found]},
         "aligned": ok,
