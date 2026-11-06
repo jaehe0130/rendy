@@ -36,7 +36,8 @@ function shrink(file: Blob): Promise<string> {
 }
 
 // kits: 고를 수 있는 가전 (체험 화면은 둘 다, 내 렌탈 반납은 빌린 가전 하나)
-export function ReturnCompare({ plan, actions, kits = ['dehum'] }: { plan?: PlanKey; actions?: (r: VisionRes, wear: boolean) => ReactNode; kits?: KitKey[] }) {
+// samples: 예시 반납 사진 줄 — 체험 화면(/try)에서만. 실제 반납 흐름에서는 고객이 직접 찍은 사진만 받는다
+export function ReturnCompare({ plan, actions, kits = ['dehum'], samples = false }: { plan?: PlanKey; actions?: (r: VisionRes, wear: boolean) => ReactNode; kits?: KitKey[]; samples?: boolean }) {
   const [kit, setKit] = useState<KitKey>(kits[0])
   const outbound = KITS[kit].before
   const [after, setAfter] = useState('')
@@ -98,7 +99,7 @@ export function ReturnCompare({ plan, actions, kits = ['dehum'] }: { plan?: Plan
         </figure>
       </div>
 
-      <div className="rc-samples">
+      {samples && <div className="rc-samples">
         <span>비교할 가전이 없으시면 이 사진을 사용해 주세요</span>
         <div className="row gap-8 wrap-row">
           {KITS[kit].afters.map((x) => (
@@ -107,7 +108,7 @@ export function ReturnCompare({ plan, actions, kits = ['dehum'] }: { plan?: Plan
             </button>
           ))}
         </div>
-      </div>
+      </div>}
 
       {state !== 'done' && (
         <button className="btn block" disabled={!after || state === 'busy'} onClick={() => run()}>{state === 'busy' ? (slow ? 'AI 서버 깨우는 중… 최대 1분' : 'AI가 출고 사진과 비교하는 중…') : 'AI로 출고 사진과 비교하기'}</button>
