@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { planOf, productById, won, type PlanKey } from '../data'
 import { Toast, ProductArt } from '../components'
+import { useStore } from '../store'
 
 // 운영자 반납 최종 판정 (기능명세서 DMG-05 · ADM-03). AI는 흠집 후보만 표시하고, 판정은 운영자가 한다.
 // 예시 데이터 — 실제로는 출고 6면 · 받은 날 3장 · 반납 3장 사진과 AI 비교 결과가 들어온다.
@@ -39,7 +40,13 @@ function burden(cat: Cat, plan: PlanKey, repair: number, cap: number) {
 }
 
 export default function Judge() {
-  const queue = [...CASES].sort((a, b) => confRank[a.conf] - confRank[b.conf])
+  // 이 브라우저에서 반납 신청한 렌탈도 판정 대기에 올림 (심사위원이 고른 상품과 이어지게). AI 결과는 예시
+  const { rentals } = useStore()
+  const mine: Case[] = rentals.filter((r) => r.status === '반납 신청').map((r) => {
+    const p = productById(r.productId)!
+    return { id: r.id, productId: r.productId, who: '내가 반납 신청한 렌탈', plan: r.plan, released: p.bought.standard, lifeMonths: /humid/.test(r.productId) ? 60 : 48, aiCat: '생활 마모', conf: '중간', marks: [{ face: '옆면', x: 52, y: 44, w: 20, h: 8, cm: 1.2 }], note: '옆면 긁힘 1.2cm (예시 결과)', repair: 0 }
+  })
+  const queue = [...mine, ...[...CASES].sort((a, b) => confRank[a.conf] - confRank[b.conf])]
   const [sel, setSel] = useState(queue[0].id)
   const [done, setDone] = useState<Record<string, string>>({})
   const [toast, setToast] = useState('')
