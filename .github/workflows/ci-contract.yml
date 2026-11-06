@@ -1,11 +1,12 @@
 name: contract
 on:
   pull_request:
-    paths: ["docs/api/**", "ai/vision/contract/**", "packages/shared/policy/**"]
+    paths: ["docs/api/**", "ai/vision/contract/**", "packages/shared/**"]
 jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - run: npx -y @redocly/cli lint docs/api/openapi.yaml ai/vision/contract/openapi.yaml
-      - run: python3 -c "import json;json.load(open('packages/shared/policy/damage-policy.json'))"
+      - run: python3 -c "import json;[json.load(open(f'packages/shared/policy/{n}.json')) for n in ('damage-policy','rendy-policy')]"
+      - run: npx -y tsx --test packages/shared/test/*.test.ts

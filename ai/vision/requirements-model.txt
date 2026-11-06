@@ -1,0 +1,7 @@
+# 실제 모델(VISION_MOCK=0)용 추가 의존성. 목(mock) 실행에는 필요 없음
+-r requirements.txt
+torch>=2.2
+torchvision>=0.17
+opencv-python-headless>=4.9
+numpy>=1.26
+scipy>=1.11

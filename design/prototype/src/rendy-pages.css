@@ -1,0 +1,93 @@
+/* 렌디 테마 공통 화면 (집업 느낌: 둥근 큰 카드 · 연한 배경 · 알약 버튼·칩 · 부드러운 그라데이션 띠)
+   html[data-theme="rendy"] 일 때만 적용 */
+html[data-theme="rendy"] body { background: #fff; }
+
+/* 상단 메뉴 */
+html[data-theme="rendy"] .header { background: rgba(255, 255, 255, .92); backdrop-filter: blur(10px); border-bottom-color: #edf1f4; }
+html[data-theme="rendy"] .nav a { border-bottom: 0; padding: 8px 14px; border-radius: 999px; color: var(--ink-2); }
+html[data-theme="rendy"] .nav a:hover { background: #f3f6f9; }
+html[data-theme="rendy"] .nav a.active { background: #eaf8f4; color: #0b7f6a; font-weight: 700; }
+html[data-theme="rendy"] .nav { gap: 6px; }
+html[data-theme="rendy"] .cart-count { border-radius: 999px; background: var(--primary); }
+
+/* 섹션 배경 */
+html[data-theme="rendy"] .bg-surface { background: #f5f8fa; }
+html[data-theme="rendy"] h1.serif { letter-spacing: -0.045em; }
+
+/* 화면 위쪽 띠 (인라인 배경을 렌디 그라데이션으로) */
+html[data-theme="rendy"] section.wrap[style*="--butter"],
+html[data-theme="rendy"] section.wrap[style*="--sky"] {
+  background: radial-gradient(70% 90% at 75% 40%, #e3f6f1 0%, #f1f0ff 50%, #ffffff 90%) !important;
+}
+html[data-theme="rendy"] section.wrap[style*="--primary"] {
+  background: linear-gradient(135deg, #ff7a2f 0%, #ff9b5c 55%, #ffc08f 100%) !important;
+  border-radius: 0 0 40px 40px;
+}
+
+/* 카드 · 패널 */
+html[data-theme="rendy"] .panel { border-radius: 28px; padding: 32px; box-shadow: 0 2px 4px rgba(20, 33, 61, .03), 0 14px 36px rgba(20, 33, 61, .06); }
+html[data-theme="rendy"] .card { border-radius: 22px; border-color: #e7ecf0; }
+html[data-theme="rendy"] .bg-ink { background: linear-gradient(135deg, #14213d, #24365c); border-radius: 28px; }
+html[data-theme="rendy"] .section > .bg-ink, html[data-theme="rendy"] a.bg-ink { border-radius: 28px; }
+
+/* 상품 카드 */
+html[data-theme="rendy"] .pcard .ph { border-radius: 24px; }
+html[data-theme="rendy"] .pcard .nm { font-weight: 700; margin-top: 4px; }
+html[data-theme="rendy"] .pcard .pr { font-size: 17px; font-weight: 800; }
+
+/* 버튼 · 칩 · 배지 */
+html[data-theme="rendy"] .btn { border-radius: 14px; padding: 16px 28px; font-weight: 700; }
+html[data-theme="rendy"] .btn.sm { border-radius: 10px; padding: 10px 16px; }
+html[data-theme="rendy"] .btn.line { border-color: #dfe5ea; }
+html[data-theme="rendy"] .chip { background: #f3f6f9; border-color: transparent; padding: 10px 18px; font-weight: 600; }
+html[data-theme="rendy"] .badge { border-radius: 999px; padding: 4px 10px; }
+html[data-theme="rendy"] .steps span { border-radius: 999px; background: #f3f6f9; border-color: transparent; }
+html[data-theme="rendy"] .steps span.on { background: var(--ink); }
+
+/* 선택 칸 · 입력 */
+html[data-theme="rendy"] .opt { border-radius: 18px; padding: 16px 14px; border-color: #e3e8ee; }
+html[data-theme="rendy"] .opt.on { padding: 15px 13px; }
+html[data-theme="rendy"] .input { border-radius: 14px; background: #f3f6f9; border-color: transparent; }
+html[data-theme="rendy"] .input:focus { background: #fff; border-color: #2ec4a6; outline: none; box-shadow: 0 0 0 3px rgba(46, 196, 166, .15); }
+html[data-theme="rendy"] .upload { border-radius: 18px; border-color: #9ad9cb; background: #f4fbf9; color: #0b7f6a; }
+html[data-theme="rendy"] label.card { border-radius: 18px; }
+
+/* 표 */
+html[data-theme="rendy"] .scroll-x { border-radius: 18px; border: 1px solid #edf1f4; }
+html[data-theme="rendy"] .table th { background: #f5f8fa; font-family: var(--sans); text-transform: none; letter-spacing: 0; font-size: 13px; font-weight: 700; color: var(--ink-2); border-bottom: 0; }
+html[data-theme="rendy"] .table td { border-bottom-color: #edf1f4; }
+html[data-theme="rendy"] .table tr:last-child td { border-bottom: 0; }
+
+/* 막대 · 구분선 */
+html[data-theme="rendy"] .bar { border-radius: 999px; overflow: hidden; height: 10px; background: #edf1f4; }
+html[data-theme="rendy"] .bar > span { border-radius: 999px; }
+html[data-theme="rendy"] .rule { background: #edf1f4; }
+html[data-theme="rendy"] .rule.ink { background: #dfe5ea; }
+
+/* 섹션 머리 영문 라벨 → 민트 알약 */
+html[data-theme="rendy"] .eyebrow { display: inline-block; align-self: flex-start; background: #eaf8f4; color: #0b7f6a !important; padding: 6px 12px; border-radius: 999px; letter-spacing: .04em; text-transform: none; }
+html[data-theme="rendy"] .bg-ink .eyebrow, html[data-theme="rendy"] section.wrap[style*="--primary"] .eyebrow { background: rgba(255, 255, 255, .16); color: #fff !important; }
+
+/* 상담 말풍선 · 팝업 · 안내 */
+html[data-theme="rendy"] .bubble { border-radius: 20px; }
+html[data-theme="rendy"] .bubble.ai { background: #f3f6f9; }
+html[data-theme="rendy"] .modal { border-radius: 28px; padding: 36px; }
+html[data-theme="rendy"] .modal-bg { background: rgba(20, 33, 61, .45); backdrop-filter: blur(4px); }
+html[data-theme="rendy"] .demo-note { border-radius: 12px; }
+html[data-theme="rendy"] .footer { margin-top: 72px; border-radius: 40px 40px 0 0; }
+
+/* 인라인 스타일로 그린 상자들도 둥글게 */
+html[data-theme="rendy"] div[style*="var(--peach)"],
+html[data-theme="rendy"] div[style*="var(--surface)"],
+html[data-theme="rendy"] div[style*="var(--sky)"],
+html[data-theme="rendy"] div[style*="var(--butter)"],
+html[data-theme="rendy"] div[style*="var(--mint)"],
+html[data-theme="rendy"] div[style*="var(--lilac)"] { border-radius: 20px; }
+html[data-theme="rendy"] div[style*="border: 1px solid var(--ink)"] { border-radius: 18px; border-color: #dfe5ea !important; }
+html[data-theme="rendy"] div[style*="border: 1px solid var(--ink)"]:has(> .input) { border-radius: 16px; padding: 4px; }
+
+/* 푸터 */
+html[data-theme="rendy"] .footer .news { background: #f5f8fa; border-radius: 28px; margin: 0 var(--pad); padding: 28px 32px; transform: translateY(-32px); }
+html[data-theme="rendy"] .footer { padding-top: 0; }
+html[data-theme="rendy"] .footer .cols .eyebrow { background: transparent; color: #9fb0cc !important; padding: 0; }
+html[data-theme="rendy"] .footer .cols a { color: #c9d3e3; }

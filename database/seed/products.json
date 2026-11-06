@@ -1,47 +1,68 @@
-[
-  {
-    "name": "제습기 10L",
-    "category": "SEASONAL",
-    "newPriceKrw": 377000,
-    "prices": {
-      "STANDARD": 15000,
-      "VALUE": 10000
+{
+  "$note": "요금·공식몰가·수명은 packages/shared/policy/rendy-policy.json에서 읽는다(여기 중복 금지). 이 파일은 사양·별칭·이미지만.",
+  "products": [
+    {
+      "key": "food-waste-disposer",
+      "name": "음식물 처리기",
+      "category": "KITCHEN",
+      "imageUrl": "/products/food-waste-disposer.webp",
+      "aliases": [
+        "음처",
+        "음식물처리기"
+      ],
+      "consumables": "필터 · 3개월마다",
+      "specs": {
+        "용량": "2L",
+        "한 달 전기요금": "약 3,000원"
+      }
+    },
+    {
+      "key": "mini-dryer",
+      "name": "미니 건조기",
+      "category": "LAUNDRY",
+      "imageUrl": "/products/mini-dryer.webp",
+      "aliases": [
+        "건조기",
+        "소형 건조기"
+      ],
+      "consumables": "먼지 필터 · 매회 세척",
+      "specs": {
+        "용량": "3kg",
+        "방 크기": "원룸",
+        "한 달 전기요금": "약 6,000원"
+      }
+    },
+    {
+      "key": "dehumidifier",
+      "name": "제습기",
+      "category": "SEASONAL",
+      "imageUrl": "/products/dehumidifier.webp",
+      "aliases": [
+        "제습",
+        "제습기 10L"
+      ],
+      "consumables": "물통 필터 · 2개월마다",
+      "specs": {
+        "용량": "10L",
+        "방 크기": "원룸 5~8평",
+        "한 달 전기요금": "약 4,000원"
+      }
+    },
+    {
+      "key": "humidifier",
+      "name": "가습기",
+      "category": "AIR",
+      "imageUrl": "/products/humidifier.webp",
+      "aliases": [
+        "가습",
+        "가습기 3L"
+      ],
+      "consumables": "필터 · 2개월마다",
+      "specs": {
+        "용량": "3L",
+        "방 크기": "원룸",
+        "한 달 전기요금": "약 2,000원"
+      }
     }
-  },
-  {
-    "name": "제습기 16L",
-    "category": "SEASONAL",
-    "newPriceKrw": 459000,
-    "prices": {
-      "STANDARD": 19000,
-      "VALUE": 14000
-    }
-  },
-  {
-    "name": "미니 건조기",
-    "category": "LAUNDRY",
-    "newPriceKrw": 329000,
-    "prices": {
-      "STANDARD": 20000,
-      "VALUE": 15000
-    }
-  },
-  {
-    "name": "가습기 3L",
-    "category": "SEASONAL",
-    "newPriceKrw": 129000,
-    "prices": {
-      "STANDARD": 15000,
-      "VALUE": 10000
-    }
-  },
-  {
-    "name": "음식물 처리기",
-    "category": "KITCHEN",
-    "newPriceKrw": 399000,
-    "prices": {
-      "STANDARD": 11000,
-      "VALUE": 6000
-    }
-  }
-]
+  ]
+}

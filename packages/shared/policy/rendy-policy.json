@@ -1,0 +1,128 @@
+{
+  "version": "spec-v3.2",
+  "source": "design/spec/기능명세서.md 부록 A, B, C-1~C-6, C-9~C-11 — 값이 다르면 명세서가 기준. ★ 표시 값은 BM 확인 전",
+  "description": "요금·배송·연장·쿠폰·매입·운영 정책. 파손 관련 값은 damage-policy.json. 계산 함수는 packages/shared/src/pricing.ts",
+
+  "timezone": "Asia/Seoul",
+  "currency": "KRW",
+  "serviceArea": { "district": "성북구", "note": "주소가 성북구가 아니면 주문 불가 (SYS-06)" },
+
+  "rental": {
+    "minMonths": 2,
+    "monthOptions": [2, 3, 4, 6],
+    "extendMonthOptions": [1, 2, 3],
+    "weekExtension": {
+      "maxTotalWeeks": 3,
+      "openDaysBeforeEnd": 14,
+      "weekPriceDivisor": 3,
+      "roundToKrw": 100,
+      "note": "★ 1주 = 월 요금 ÷ 3 (100원 반올림), 신청 때 바로 결제, 쿠폰 안 됨. 1주 연장 후에는 1개월 연장 불가"
+    },
+    "reservationHoldMinutes": 15,
+    "waitlistHoldHours": 24,
+    "cancelDeadline": { "daysBeforeReceive": 1, "time": "18:00" },
+    "earlyReturnRefund": false
+  },
+
+  "delivery": {
+    "scheduledWeekdays": ["TUE", "FRI"],
+    "minDaysAfterPayment": 2,
+    "freeThresholdMonthlyKrw": 30000,
+    "doorFeeKrw": 10000,
+    "hubFeeKrw": 0,
+    "expressFeeKrw": 10000,
+    "note": "C-4: 기준 금액 = 주문 가전 월 요금(정가) 합. 문 앞 배송비 1만 원에 배송 1회 + 반납 회수 1회 포함. 급행은 주문 금액과 상관없이 1만 원"
+  },
+
+  "billing": {
+    "retryAfterDays": [1, 3],
+    "maxAttempts": 3,
+    "note": "C-2: 3회 실패 → 연체 (연장·새 주문 불가)"
+  },
+
+  "products": [
+    { "key": "food-waste-disposer", "name": "음식물 처리기", "category": "KITCHEN", "officialPriceKrw": 329000, "standardMonthlyKrw": 15000, "valueMonthlyKrw": null, "lifespanMonths": 48,
+      "shortTermFirstMonth": { "underMonths": 4, "firstMonthKrw": 20000, "note": "새 필터 제공" } },
+    { "key": "mini-dryer", "name": "미니 건조기", "category": "LAUNDRY", "officialPriceKrw": 499000, "standardMonthlyKrw": 20000, "valueMonthlyKrw": 15000, "lifespanMonths": 48 },
+    { "key": "dehumidifier", "name": "제습기", "category": "SEASONAL", "officialPriceKrw": 377000, "standardMonthlyKrw": 15000, "valueMonthlyKrw": 10000, "lifespanMonths": 60 },
+    { "key": "humidifier", "name": "가습기", "category": "AIR", "officialPriceKrw": 305000, "standardMonthlyKrw": 15000, "valueMonthlyKrw": null, "lifespanMonths": 60 }
+  ],
+  "productsNote": "부록 B (BM 개정 6). valueMonthlyKrw=null 품목은 실속형 기기를 만들지 않음(B급 매입 안 함). 실속형 = 일반형 − 5,000원",
+
+  "priceType": {
+    "valueAfterReleaseMonths": 36,
+    "note": "C-1: 일반형 = 새 제품·A급 중고 / 실속형 = B급 중고·출시 36개월 넘은 A급 중고. 새 제품은 36개월 운영 후 판매(실속형으로 안 내림). 배정은 입고 연월이 가장 오래된 기기부터"
+  },
+
+  "coupons": {
+    "FIRST_MONTH_50": { "label": "첫 렌탈 첫 달 50%", "ratio": 0.5, "maxKrw": 10000, "validDays": 30, "issuedBy": "SCHOOL_VERIFIED", "appliesTo": "FIRST_ORDER_FIRST_PAYMENT" },
+    "REFERRAL": { "label": "친구 초대", "amountKrw": 5000, "validDays": 30, "issuedBy": "REFERRAL_FIRST_RECEIVE", "appliesTo": "FIRST_PAYMENT_OR_MONTH_EXTENSION" },
+    "FREE_DELIVERY": { "label": "배송비 1회 무료", "maxKrw": 10000, "validDays": 30, "issuedBy": "SCHOOL_VERIFIED", "appliesTo": "ORDER_WITH_DELIVERY_FEE" },
+    "EXTENSION": { "label": "연장 쿠폰", "amountKrw": 3000, "validDays": 30, "issuedBy": "END_MINUS_7_DAYS_OR_SCHOOL_100", "appliesTo": "MONTH_EXTENSION_FIRST_INSTALLMENT" },
+    "applyOrder": ["FIRST_MONTH_50", "REFERRAL", "FREE_DELIVERY", "EXTENSION"],
+    "onePerKindPerPayment": true,
+    "restoreOnCancelIfNotExpired": true
+  },
+
+  "school": {
+    "domains": {
+      "성신여대": "sungshin.ac.kr",
+      "고려대": "korea.ac.kr",
+      "국민대": "kookmin.ac.kr",
+      "한성대": "hansung.ac.kr",
+      "동덕여대": "dongduk.ac.kr",
+      "서경대": "skuniv.ac.kr",
+      "KC대": "kcu.ac.kr"
+    },
+    "emailCode": { "length": 6, "validMinutes": 10, "maxAttempts": 5 },
+    "goal": 300,
+    "stages": [
+      { "members": 100, "reward": "EXTENSION_COUPON_3000" },
+      { "members": 200, "reward": "WAITLIST_PRIORITY" },
+      { "members": 300, "reward": "FULL_PROTECTION_3_MONTHS_FREE" }
+    ],
+    "studentCardReviewHours": 24,
+    "seasonBuybackBonusRatio": 1.1
+  },
+
+  "auth": {
+    "otp": { "length": 6, "validMinutes": 3, "resendCooldownSeconds": 60, "maxPerDay": 5, "maxAttempts": 5 },
+    "sessionDays": 14,
+    "requiredAgreements": ["TERMS", "PRIVACY", "DAMAGE_POLICY"],
+    "optionalAgreements": ["MARKETING"]
+  },
+
+  "buyback": {
+    "rateByAge": [
+      { "maxMonths": 12, "rate": 0.30 },
+      { "maxMonths": 24, "rate": 0.25 }
+    ],
+    "rendyUserBonusRate": 0.05,
+    "conditionFactor": { "LIKE_NEW": 1.0, "WEAR": 0.85, "VISIBLE_DAMAGE": 0.7 },
+    "visibleDamageRequiresValueTier": true,
+    "roundToKrw": 1000,
+    "rangeRatio": [0.9, 1.1],
+    "quoteValidDays": 7,
+    "pickupFeeKrw": 0,
+    "note": "C-9: 견적 = 공식몰가 × (매입률 + 우대) × 상태 계수, 1,000원 반올림. 2년 초과·미취급 품목·(실속형 없는 품목의 눈에 띄는 흠집)은 매입 안 함. AI 사용 금지"
+  },
+
+  "operations": {
+    "restockSignal": { "utilizationMin": 0.85, "consecutiveDays": 14, "waitlistToFleetRatioMin": 0.1 },
+    "kpiTargets": {
+      "utilization": 0.85,
+      "paidProtectionRate": 0.30,
+      "buybackUnitPriceMaxRatio": 0.30,
+      "avgRentalMonths": 4,
+      "deliveriesPerRun": 4,
+      "buybackApplicants": 100
+    },
+    "naturalFailureReplacementTargetDays": 2
+  },
+
+  "ai": {
+    "consultMaxMessages": 30,
+    "weeklyRecompute": ["PURCHASE_REASONS", "REVIEW_SUMMARY"],
+    "neverDecides": ["PRICE", "STOCK", "RESERVATION", "FINAL_DAMAGE_VERDICT", "BUYBACK_PRICE"]
+  }
+}
