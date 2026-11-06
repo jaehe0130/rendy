@@ -16,7 +16,7 @@ export function Upload({ label, onFile }: { label: string; onFile?: (f: File) =>
 }
 
 export default function My() {
-  const { user, rentals, coupons, sells, waitlist, extendRental, requestReturn, logout, reset } = useStore()
+  const { user, rentals, coupons, sells, waitlist, extendRental, requestReturn, reset } = useStore()
   // ?open=extend | return | receive 이면 그 팝업을 열어 둔 채로 시작 (시안 캡처·시연용)
   const openQ = new URLSearchParams(location.search).get('open')
   const [ext, setExt] = useState<Rental | null>(openQ === 'extend' ? rentals[0] ?? null : null)
@@ -51,7 +51,6 @@ export default function My() {
           <b style={{ fontSize: 14 }}>팔기 {sells.length}</b>
           {sells.map((s) => <span key={s.id} className="faint" style={{ fontSize: 13 }}>· [{s.kind}] {s.item} · {s.amount} · {s.status}</span>)}
           <hr className="rule" />
-          <button className="btn line sm" onClick={logout}>로그아웃</button>
           <button className="faint" style={{ background: 'none', border: 0, fontSize: 12, textAlign: 'left' }} onClick={() => { reset(); flash('데모 데이터를 처음 상태로 돌렸어요') }}>데모 초기화</button>
         </aside>
         <div className="stack gap-16">
