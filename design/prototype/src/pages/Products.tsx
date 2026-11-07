@@ -207,7 +207,7 @@ export function ProductDetail() {
           <p className="muted" style={{ marginTop: 16, fontSize: 14 }}>소모품: {p.consumable}</p>
         </div>
         <div className="panel stack gap-16" style={{ marginTop: 24 }}>
-          <SectionHead en="Device history" title="이 기기 이력 (기기마다 QR)" />
+          <SectionHead en="Device history" title="이 기기 이력 (기기마다 QR)" oneLine />
           <div className="grid g4" style={{ gap: 12, gridTemplateColumns: 'repeat(auto-fit,minmax(160px,1fr))' }}>
             {[['실제 사진', '출고 사진 4장 · 기존 흠집 2곳 표시'], ['매입', `${p.bought[grade]} · ${p.source}`], ['최근 세척 · 정비', p.specs.find(([a]) => a === '최근 정비')?.[1] ?? '—'], ['작동 점검', '통과'], ['수리 이력', '없음']].map(([a, b]) => (
               <div key={a} className="stack gap-4" style={{ background: 'var(--surface)', padding: 16 }}><span className="faint" style={{ fontSize: 12 }}>{a}</span><b style={{ fontSize: 14 }}>{b}</b></div>

@@ -235,12 +235,13 @@ export function ProductCard({ p }: { p: Product }) {
   )
 }
 
-export function SectionHead({ en, title, right }: { en: string; title: string; right?: ReactNode }) {
+// oneLine: 좁은 화면에서도 줄바꿈 없이 한 줄 (글자 크기를 화면 폭에 맞춰 줄임)
+export function SectionHead({ en, title, right, oneLine }: { en: string; title: string; right?: ReactNode; oneLine?: boolean }) {
   return (
     <div className="row between gap-16 wrap-row" style={{ alignItems: 'flex-end', marginBottom: 28 }}>
       <div className="stack gap-8">
         <span className="eyebrow">{en}</span>
-        <h2 className="serif" style={{ fontSize: 'clamp(26px, 3.4vw, 36px)' }}>{title}</h2>
+        <h2 className="serif" style={oneLine ? { fontSize: 'clamp(18px, 5.2vw, 36px)', whiteSpace: 'nowrap' } : { fontSize: 'clamp(26px, 3.4vw, 36px)' }}>{title}</h2>
       </div>
       {right}
     </div>
