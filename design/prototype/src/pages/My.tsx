@@ -74,7 +74,7 @@ export default function My() {
                 <div style={{ background: p.bg, width: 112, height: 112, display: 'grid', placeItems: 'center' }}><ProductArt p={p} size={84} /></div>
                 <div className="stack gap-8" style={{ flex: 1, minWidth: 220 }}>
                   <div className="row gap-8 wrap-row"><b style={{ fontSize: 18 }}>{p.name}</b><span className="badge soft">{r.mode === 'long' ? (r.grade === 'standard' ? '일반형' : '실속형') : '1주 단기'}</span>{r.status !== '사용 중' && <span className="badge solid">{r.status}</span>}<span className={`badge ${d <= 7 ? 'orange' : ''}`}>반납까지 D-{Math.max(0, d)}</span></div>
-                  <span className="faint" style={{ fontSize: 13 }}>{r.start} ~ {r.end} · {r.mode === 'long' ? `월 ${won(r.price)}` : won(r.price)}{` · ${planOf(r.plan).name} 보장`} · {p.bought[r.grade]} 매입</span>
+                  <span className="faint" style={{ fontSize: 13 }}>{r.start} ~ {r.end} · {r.mode === 'long' ? `월 ${won(r.price)}` : won(r.price)}{` · ${r.plan === 'basic' ? '파손 케어 없음' : `${planOf(r.plan).name} 케어`}`} · {p.bought[r.grade]} 매입</span>
                   <Bar pct={(passed / total) * 100} orange={d <= 23} />
                   {r.mode === 'long' && <span className="faint" style={{ fontSize: 12 }}>소모품 교체 예정: {p.consumable}</span>}
                 </div>
@@ -132,7 +132,7 @@ export default function My() {
               <div style={{ background: 'var(--surface)', padding: 18 }} className="stack gap-4">
                 <span className="badge solid" style={{ alignSelf: 'flex-start' }}>예비 판정: 생활 마모</span>
                 <b className="serif" style={{ fontSize: 30, color: 'var(--success)' }}>예상 부담 0원</b>
-                <span className="faint" style={{ fontSize: 13 }}>2cm 이하 긁힘·찍힘은 생활 마모라 0원이에요. 과실 파손은 보장 단계에 따라 기본 수리비 100% · 안심 30% · 완전 안심 0%예요 (잔존가치 한도). 회수 후 운영자가 작동 테스트와 함께 최종 판정하고, 결과를 받은 뒤 48시간 안에 이의 신청할 수 있어요.</span>
+                <span className="faint" style={{ fontSize: 13 }}>2cm 이하 긁힘·찍힘은 생활 마모라 0원이에요. 과실 파손은 파손 케어에 따라 수리비 100%(케어 없음) · 베이직 50% · 프리미엄 20%예요 (잔존가치 한도). 회수 후 운영자가 작동 테스트와 함께 최종 판정하고, 결과를 받은 뒤 48시간 안에 이의 신청할 수 있어요.</span>
               </div>
               <div className="row gap-8"><button className="btn line" onClick={() => { closeRet(); flash('이의 신청을 접수했어요. 3영업일 안에 다시 판정해요') }}>이의 신청</button><button className="btn" style={{ flex: 1 }} onClick={() => { requestReturn(ret.id); closeRet(); flash('반납 신청 완료. 회수 날 가져갈게요') }}>반납 확정</button></div>
               <span className="demo-note">프로토타입: 판정 결과는 예시예요. 실제로는 출고 때 찍은 사진과 AI가 부위별로 비교하고, 최종 판정은 운영자가 해요.</span>

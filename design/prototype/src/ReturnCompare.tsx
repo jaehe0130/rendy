@@ -140,7 +140,7 @@ export function ReturnCompare({ plan, actions, kits = ['dehumidifier-10'], lockO
               <div className="row gap-8"><span className="badge solid">AI 예비 판정</span>{top?.needsReview && <span className="badge orange">운영자 확인 필요</span>}</div>
               <b style={{ fontSize: 20 }}>{top ? `새로 생긴 흠집 ${res.findings.length}곳 · 약 ${(top.lengthMm / 10).toFixed(1)}cm` : '새로 생긴 흠집이 없어요'}</b>
               <div className="kv"><span>예상 분류</span><b>{wear ? '생활 마모' : '과실 파손 후보'}</b></div>
-              <div className="kv"><span>예상 부담</span><b style={{ color: 'var(--primary)' }}>{wear ? '0원' : plan ? `수리비의 ${share}% (${planOf(plan).name} 보장)` : '보장 단계에 따라'}</b></div>
+              <div className="kv"><span>예상 부담</span><b style={{ color: 'var(--primary)' }}>{wear ? '0원' : plan ? `수리비의 ${share}% (${plan === 'basic' ? '파손 케어 없음' : `${planOf(plan).name} 케어`})` : '파손 케어에 따라'}</b></div>
               <span className="faint" style={{ fontSize: 12 }}>2cm 이하는 생활 마모라 0원 · AI는 후보만 표시하고, 회수 후 운영자가 최종 판정해요 · {(res.ms / 1000).toFixed(1)}초</span>
               {actions?.(res, wear)}
             </>

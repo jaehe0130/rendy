@@ -228,14 +228,15 @@ export const lowest = (p: Product) => p.monthly.value ?? p.monthly.standard
 export const firstMonth = (p: Product, g: 'standard' | 'value', months: number) => (p.shortFirst && months < 4 ? p.shortFirst : priceOf(p, g))
 export const deliveryFee = (monthlySum: number) => (monthlySum >= PRICING.freeOver ? 0 : PRICING.delivery)
 
-// 파손 보장 단계 (렌터카 자차처럼) — 기능명세서 부록 A · C-7 (★ BM 확인 전)
-// rate = 보장 월 요금 (품목 월 대여료의 %), repairShare = 과실 파손 수리비 중 고객 부담 %, lossShare = 분실 시 잔존가치 중 고객 부담 %
+// 파손 케어 (선택, 2단계) — 발표자료 v14 기준: 베이직 월 공식몰가 0.5% · 수리비 50%, 프리미엄 월 0.8% · 수리비 20%
+// 키는 예전 저장 데이터와 맞추려고 유지 (basic = 케어 없음, safe = 베이직, full = 프리미엄)
+// rate = 케어 월 요금 (공식몰가의 %), repairShare = 과실 파손 수리비 중 고객 부담 %, lossShare = 분실 시 잔존가치 중 고객 부담 %
 export type PlanKey = 'basic' | 'safe' | 'full'
 export const PLANS: { key: PlanKey; name: string; rate: number; repairShare: number; lossShare: number; desc: string }[] = [
-  { key: 'basic', name: '기본', rate: 0, repairShare: 100, lossShare: 100, desc: '과실 파손 시 수리비 100% (잔존가치 한도)' },
-  { key: 'safe', name: '안심', rate: 5, repairShare: 30, lossShare: 100, desc: '과실 파손 시 수리비 30%만 부담 (렌탈당 1회)' },
-  { key: 'full', name: '완전 안심', rate: 10, repairShare: 0, lossShare: 50, desc: '과실 파손 0% (렌탈당 1회) · 분실 잔존가치 50%' },
+  { key: 'basic', name: '케어 없음', rate: 0, repairShare: 100, lossShare: 100, desc: '과실 파손 시 수리비 100% (잔존가치 한도)' },
+  { key: 'safe', name: '베이직', rate: 0.5, repairShare: 50, lossShare: 100, desc: '과실 파손 시 수리비 50%만 부담' },
+  { key: 'full', name: '프리미엄', rate: 0.8, repairShare: 20, lossShare: 100, desc: '과실 파손 시 수리비 20%만 부담' },
 ]
 export const planOf = (k: PlanKey | undefined) => PLANS.find((x) => x.key === k) ?? PLANS[0]
-// 보장 월 요금 = 품목 월 대여료 × rate, 100원 단위 반올림
-export const careFee = (k: PlanKey | undefined, monthly: number) => Math.round((monthly * planOf(k).rate) / 100 / 100) * 100
+// 케어 월 요금 = 공식몰가 × rate, 100원 단위 반올림 (예: 공식몰가 377,000원 → 베이직 1,900원 · 프리미엄 3,000원)
+export const careFee = (k: PlanKey | undefined, officialPrice: number) => Math.round((officialPrice * planOf(k).rate) / 100 / 100) * 100

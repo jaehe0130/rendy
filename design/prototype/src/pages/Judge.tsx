@@ -117,7 +117,7 @@ export default function Judge() {
             <div className="field"><label>최종 분류</label><div className="chips">{(['생활 마모', '과실 파손', '자연 고장'] as Cat[]).map((x) => <button key={x} className={`chip ${cat === x ? 'on' : ''}`} onClick={() => setCat(x)}>{x}</button>)}</div></div>
             {cat === '과실 파손' && <div className="field"><label htmlFor="rp">수리비</label><input id="rp" className="input" inputMode="numeric" value={repair} onChange={(e) => setRepair(+e.target.value.replace(/\D/g, '') || 0)} style={{ maxWidth: 200 }} /></div>}
             {differs && <div className="field"><label htmlFor="rs">AI와 다르게 판정한 사유 (필수)</label><input id="rs" className="input" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="예: 반사광을 흠집으로 봄" /></div>}
-            <div className="kv"><span>보장 단계</span><b>{planOf(c.plan).name}</b></div>
+            <div className="kv"><span>파손 케어</span><b>{planOf(c.plan).name}</b></div>
             <div className="kv"><span>잔존가치 (부담 상한)</span><b>{won(cap)}</b></div>
             <div className="kv" style={{ fontSize: 18 }}><span>고객 부담</span><b style={{ color: 'var(--primary)' }}>{won(pay)}</b></div>
             <button className="btn block" disabled={!!done[c.id] || (differs && !reason)} onClick={confirm}>{done[c.id] ? `확정됨 · ${done[c.id]}` : '판정 확정'}</button>

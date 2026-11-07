@@ -66,7 +66,7 @@ export function ProductDetail() {
   const total = mode === 'long' ? first + unit * (months - 1) : unit
   const saved = p.newPrice - total
   const fee = deliveryFee(unit)
-  const careOf = (k: PlanKey) => careFee(k, priceOf(p, grade))
+  const careOf = (k: PlanKey) => careFee(k, p.newPrice)
   const careSum = careOf(plan) * (mode === 'long' ? months : 1)
   const flash = (m: string) => { setToast(m); setTimeout(() => setToast(''), 1800) }
   const add = (go: boolean) => {
@@ -148,21 +148,21 @@ export function ProductDetail() {
                     </div>
                   </div>
                 )}
-                <div className="stack gap-8"><b>파손 보장 단계 <span className="faint" style={{ fontWeight: 400, fontSize: 12 }}>렌터카 자차처럼 골라요</span></b>
+                <div className="stack gap-8"><b>파손 케어 <span className="faint" style={{ fontWeight: 400, fontSize: 12 }}>선택 · 2단계</span></b>
                   <div className="grid g3" style={{ gap: 8, gridTemplateColumns: 'repeat(3,1fr)' }}>
                     {PLANS.map((x) => (
                       <button key={x.key} className={`opt ${plan === x.key ? 'on' : ''}`} onClick={() => setPlan(x.key)} style={{ textAlign: 'left' }}>
                         <b>{x.name}{x.key === 'full' ? ' · 추천' : ''}</b>
-                        <small>월 {won(careOf(x.key))}{x.rate ? ` (대여료의 ${x.rate}%)` : ''}</small>
+                        <small>월 {won(careOf(x.key))}{x.rate ? ` (공식몰가의 ${x.rate}%)` : ''}</small>
                         <small style={{ color: 'var(--ink)', fontWeight: 700, marginTop: 4 }}>과실 파손 수리비 {x.repairShare}%</small>
                       </button>
                     ))}
                   </div>
-                  <span className="faint" style={{ fontSize: 12 }}>{planOf(plan).desc} · 2cm 이하 생활 마모는 어떤 단계든 0원 · 고의 파손은 보장 제외</span>
+                  <span className="faint" style={{ fontSize: 12 }}>{planOf(plan).desc} · 2cm 이하 생활 마모는 케어 없이도 0원 · 고의 파손은 케어 제외</span>
                 </div>
                 <div className="stack gap-4" style={{ border: '1px solid var(--ink)', padding: '14px 16px' }}>
                   <b style={{ fontSize: 14 }}>신청 전 총비용 · {won(total + fee + careSum)}</b>
-                  <span className="faint" style={{ fontSize: 12 }}>{months}개월 대여료 {won(total)} + 배송·회수 {fee ? won(fee) : '0원 (월 3만원 이상)'}{careSum ? ` + ${planOf(plan).name} 보장 ${won(careSum)}` : ''} · 쿠폰 전 금액</span>
+                  <span className="faint" style={{ fontSize: 12 }}>{months}개월 대여료 {won(total)} + 배송·회수 {fee ? won(fee) : '0원 (월 3만원 이상)'}{careSum ? ` + ${planOf(plan).name} 케어 ${won(careSum)}` : ''} · 쿠폰 전 금액</span>
                 </div>
                 <div style={{ background: 'var(--peach)', padding: 18 }} className="stack gap-8">
                   <div className="row gap-8"><span className="badge orange">AI</span><span className="eyebrow">Saving report</span></div>
@@ -222,10 +222,10 @@ export function ProductDetail() {
               ['소모품', '필터', '정기 교체 (요금 포함)', () => '0원'],
               ['과실 파손', '떨어뜨림 · 침수 · 2cm 넘는 흠', '수리 또는 부품 교체', (x) => `수리비 ${x.repairShare}%`],
               ['분실 · 도난', '기기 분실 · 도난', '잔존가치 기준 보상', (x) => `잔존가치 ${x.lossShare}%`],
-              ['고의 훼손', '일부러 부숨', '보장 제외', () => '잔존가치 100%'],
+              ['고의 훼손', '일부러 부숨', '케어 제외', () => '잔존가치 100%'],
             ] as [string, string, string, (x: (typeof PLANS)[number]) => string][]).map((r) => <tr key={r[0]}><td><b>{r[0]}</b></td><td className="muted">{r[1]}</td><td>{r[2]}</td>{PLANS.map((x) => <td key={x.key} style={plan === x.key ? { fontWeight: 700 } : undefined}>{r[3](x)}</td>)}</tr>)}</tbody>
           </table></div>
-          <span className="faint" style={{ fontSize: 12 }}>수리비 %는 실제 수리비 기준이고 잔존가치가 상한이에요. 안심 · 완전 안심 보장은 렌탈 1건당 1회, 2회째부터는 기본과 같아요.</span>
+          <span className="faint" style={{ fontSize: 12 }}>수리비 %는 실제 수리비 기준이고 잔존가치가 상한이에요. 예: 수리비 10만 원 → 베이직 5만 원 · 프리미엄 2만 원.</span>
           <span className="faint" style={{ fontSize: 12 }}>반납 때 AI가 출고 · 반납 사진을 비교해 달라진 부분을 표시하고, 운영자가 작동 테스트와 함께 최종 판정해요. 받은 날 사진에 있던 흠은 책임에서 빠져요.</span>
         </div>
       </section>

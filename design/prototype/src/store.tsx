@@ -59,7 +59,7 @@ function load(): State {
     // 이 브라우저에 기록(데모 회원)이 있으면 그대로 이어서 씀. 회원 정보가 없는 예전 기록은 새 데모 회원으로
     if (raw && JSON.parse(raw).user) {
       const s = { ...seed, ...JSON.parse(raw) }
-      // 예전 데이터(care: true/false)를 보장 단계로 바꿈
+      // 예전 데이터(care: true/false)를 파손 케어 단계로 바꿈
       const fix = <T extends { plan?: PlanKey; care?: boolean }>(x: T) => ({ ...x, plan: x.plan ?? (x.care ? 'full' : 'basic') })
       // v3.2에서 위탁(맡기기)과 위탁 전용 품목을 뺐으므로 예전 저장 데이터에서 걸러냄
       const known = (x: { productId: string }) => !!productById(x.productId)
