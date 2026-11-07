@@ -3,7 +3,7 @@ import { planOf, type PlanKey } from './data'
 
 // 반납 AI 예비 판정: 렌디가 출고 때 찍은 사진(고정) ↔ 사용자가 반납할 때 찍은 사진을 실제 흠집 모델(Modal)로 비교.
 // 결과는 예비 — 최종 판정은 회수 후 운영자. 체험 화면(/try)과 내 렌탈 반납 팝업에서 같이 씀
-export const VISION_URL = (import.meta.env.VITE_VISION_URL as string | undefined) || 'https://seongwon20--rendy-vision-web.us-east.modal.run'
+export const VISION_URL = (import.meta.env.VITE_VISION_URL as string | undefined) || 'https://gamma0225--rendy-vision-web.us-east.modal.run'
 // 시연용 상품별 예시: 출고 사진(렌디가 보내기 전에 찍어 둔 앞면) ↔ 같은 기기의 반납 사진(긁힘) 짝. 키 = 상품 id (data.ts)
 // 출고 사진 = 상품 사진(원본)을 기기 부분만 자른 것. 긁힘 A ↔ 상품 사진 1, B ↔ 2, C ↔ 3
 // 예시 반납 사진 A를 누르면 출고 사진도 A의 짝으로 바뀜. 실제 모델이 흠집을 찾는 짝만 넣음 (2026-11-06 확인)
