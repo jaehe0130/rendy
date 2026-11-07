@@ -3,12 +3,16 @@
 export type IllustKey = 'dehumidifier' | 'dryer' | 'humidifier' | 'foodwaste' | 'standbyme' | 'vacuum' | 'box'
 export type Category = 'seasonal' | 'laundry' | 'air' | 'kitchen'
 
+// 상품 사진 (public/products). cut = 배경 지운 제품 사진(타일 색 위에 올림) · scene = 생활 사진(칸을 꽉 채움)
+export interface ProductPhoto { src: string; fit: 'cut' | 'scene' }
+
 export interface Product {
   id: string
   name: string
   model: string
   category: Category
   illust: IllustKey
+  photos?: ProductPhoto[] // 없으면 일러스트
   bg: string
   newPrice: number
   monthly: { standard: number; value: number | null } // 일반형 / 실속형(일반형 −5,000원, 없으면 null)
@@ -25,6 +29,17 @@ export interface Product {
   rating: number
   reviewCount: number
   minMonths: number
+  model3d?: Model3D // 있으면 상세 화면에 '3D 돌려보기' 버튼 (2-3a)
+}
+
+// 3D 모델 (public/models/*.glb). 흠집 위치 at = 모델 크기 기준 비율 [가로, 높이, 깊이] (−1 ~ 1, 0 = 가운데)
+export type ViewKey = 'front' | 'side' | 'back' | 'top'
+export interface ScanMark { title: string; note: string; charge: string; at: [number, number, number]; view: ViewKey }
+export interface Model3D {
+  src: { standard: string; value?: string } // 대표 기기별 스캔 (실속형 없으면 일반형만)
+  scanned: string // 실물 스캔 날짜
+  size?: { w: number; d: number; h: number } // cm · 있으면 치수선 표시
+  marks: { standard: ScanMark[]; value?: ScanMark[] } // 대표 기기별 기존 흠집 (모델에 핀)
 }
 
 export const CATEGORIES: { key: Category; en: string; name: string; illust: IllustKey; bg: string }[] = [
@@ -41,6 +56,24 @@ export const PRODUCTS: Product[] = [
     model: 'Dehumidifier 10L',
     category: 'seasonal',
     illust: 'dehumidifier',
+    photos: [{ src: '/products/dehumidifier-10-1.webp', fit: 'scene' }, { src: '/products/dehumidifier-10-2.webp', fit: 'scene' }, { src: '/products/dehumidifier-10-3.webp', fit: 'scene' }],
+    model3d: {
+      src: { standard: '/models/dehumidifier-10l-1.glb', value: '/models/dehumidifier-10l-2.glb' },
+      scanned: '2026.10.28',
+      size: { w: 30, d: 20, h: 48 },
+      marks: {
+        standard: [
+          { title: '오른쪽 옆면 긁힘 1.2cm', note: '생활 마모', charge: '반납 때 0원', at: [1, 0.3, 0.2], view: 'side' },
+          { title: '물통 손잡이 사용감', note: '기능 이상 없음 · 세척 완료', charge: '', at: [-0.3, -0.45, 1], view: 'front' },
+        ],
+        value: [
+          { title: '오른쪽 옆면 긁힘 1.6cm', note: '생활 마모', charge: '반납 때 0원', at: [1, 0.2, 0.1], view: 'side' },
+          { title: '앞면 모서리 찍힘 0.8cm', note: '생활 마모', charge: '반납 때 0원', at: [0.85, 0.8, 1], view: 'front' },
+          { title: '물통 손잡이 사용감', note: '기능 이상 없음 · 세척 완료', charge: '', at: [-0.3, -0.45, 1], view: 'front' },
+          { title: '뒷면 변색', note: '햇빛 변색 · 기능 이상 없음', charge: '', at: [0, 0.4, -1], view: 'back' },
+        ],
+      },
+    },
     bg: 'var(--sky)',
     newPrice: 377000,
     monthly: { standard: 15000, value: 10000 },
@@ -62,6 +95,8 @@ export const PRODUCTS: Product[] = [
     model: 'Dehumidifier 16L',
     category: 'seasonal',
     illust: 'dehumidifier',
+    photos: [{ src: '/products/dehumidifier-16-1.webp', fit: 'scene' }, { src: '/products/dehumidifier-16-2.webp', fit: 'scene' }, { src: '/products/dehumidifier-16-3.webp', fit: 'scene' }],
+    model3d: { src: { standard: '/models/dehumidifier-20l-1.glb', value: '/models/dehumidifier-20l-2.glb' }, scanned: '2026.10.28', marks: { standard: [{ title: '윗면 손잡이 사용감', note: '기능 이상 없음 · 세척 완료', charge: '', at: [0, 1, 0.2], view: 'top' }], value: [{ title: '앞면 아래 긁힘 1.5cm', note: '생활 마모', charge: '반납 때 0원', at: [0.4, -0.6, 1], view: 'front' }, { title: '오른쪽 옆면 생활 흠집', note: '생활 마모', charge: '반납 때 0원', at: [1, 0.1, 0], view: 'side' }, { title: '윗면 손잡이 사용감', note: '기능 이상 없음 · 세척 완료', charge: '', at: [0, 1, 0.2], view: 'top' }] } },
     bg: 'var(--sky)',
     newPrice: 459000,
     monthly: { standard: 19000, value: 14000 },
@@ -83,6 +118,8 @@ export const PRODUCTS: Product[] = [
     model: 'Mini Dryer 3kg',
     category: 'laundry',
     illust: 'dryer',
+    photos: [{ src: '/products/mini-dryer-1.webp', fit: 'scene' }, { src: '/products/mini-dryer-2.webp', fit: 'scene' }, { src: '/products/mini-dryer-3.webp', fit: 'scene' }],
+    model3d: { src: { standard: '/models/mini-dryer-1.glb', value: '/models/mini-dryer-2.glb' }, scanned: '2026.10.30', marks: { standard: [{ title: '문 테두리 사용감', note: '기능 이상 없음 · 세척 완료', charge: '', at: [0.5, 0.1, 1], view: 'front' }], value: [{ title: '문 테두리 사용감', note: '기능 이상 없음 · 세척 완료', charge: '', at: [0.5, 0.1, 1], view: 'front' }, { title: '윗면 긁힘 1.0cm', note: '생활 마모', charge: '반납 때 0원', at: [0.3, 1, 0], view: 'top' }, { title: '오른쪽 옆면 찍힘 0.5cm', note: '생활 마모', charge: '반납 때 0원', at: [1, -0.3, 0.2], view: 'side' }] } },
     bg: 'var(--peach)',
     newPrice: 499000,
     monthly: { standard: 20000, value: 15000 },
@@ -104,6 +141,8 @@ export const PRODUCTS: Product[] = [
     model: 'Humidifier 3L',
     category: 'air',
     illust: 'humidifier',
+    photos: [{ src: '/products/humidifier-1.webp', fit: 'scene' }, { src: '/products/humidifier-2.webp', fit: 'scene' }, { src: '/products/humidifier-3.webp', fit: 'scene' }],
+    model3d: { src: { standard: '/models/humidifier-1.glb' }, scanned: '2026.10.25', marks: { standard: [{ title: '물통 뚜껑 사용감', note: '기능 이상 없음 · 세척 완료', charge: '', at: [0, 1, 0], view: 'top' }, { title: '손잡이 긁힘 0.8cm', note: '생활 마모', charge: '반납 때 0원', at: [1, 0.5, 0], view: 'side' }] } },
     bg: 'var(--mint)',
     newPrice: 305000,
     monthly: { standard: 15000, value: null },
@@ -125,6 +164,8 @@ export const PRODUCTS: Product[] = [
     model: 'Food Waste Dryer 2L',
     category: 'kitchen',
     illust: 'foodwaste',
+    photos: [{ src: '/products/foodwaste-1.webp', fit: 'scene' }, { src: '/products/foodwaste-2.webp', fit: 'scene' }, { src: '/products/foodwaste-3.webp', fit: 'scene' }],
+    model3d: { src: { standard: '/models/foodwaste-1.glb' }, scanned: '2026.10.25', marks: { standard: [{ title: '뚜껑 경첩 사용감', note: '기능 이상 없음 · 세척 완료', charge: '', at: [0, 1, -0.6], view: 'top' }, { title: '앞면 긁힘 0.6cm', note: '생활 마모', charge: '반납 때 0원', at: [-0.3, 0.2, 1], view: 'front' }] } },
     bg: 'var(--butter)',
     newPrice: 329000,
     monthly: { standard: 15000, value: null },
@@ -187,14 +228,15 @@ export const lowest = (p: Product) => p.monthly.value ?? p.monthly.standard
 export const firstMonth = (p: Product, g: 'standard' | 'value', months: number) => (p.shortFirst && months < 4 ? p.shortFirst : priceOf(p, g))
 export const deliveryFee = (monthlySum: number) => (monthlySum >= PRICING.freeOver ? 0 : PRICING.delivery)
 
-// 파손 보장 단계 (렌터카 자차처럼) — 기능명세서 부록 A · C-7 (★ BM 확인 전)
-// rate = 보장 월 요금 (품목 월 대여료의 %), repairShare = 과실 파손 수리비 중 고객 부담 %, lossShare = 분실 시 잔존가치 중 고객 부담 %
+// 파손 케어 (선택, 2단계) — 발표자료 v14 기준: 베이직 월 공식몰가 0.5% · 수리비 50%, 프리미엄 월 0.8% · 수리비 20%
+// 키는 예전 저장 데이터와 맞추려고 유지 (basic = 케어 없음, safe = 베이직, full = 프리미엄)
+// rate = 케어 월 요금 (공식몰가의 %), repairShare = 과실 파손 수리비 중 고객 부담 %, lossShare = 분실 시 잔존가치 중 고객 부담 %
 export type PlanKey = 'basic' | 'safe' | 'full'
 export const PLANS: { key: PlanKey; name: string; rate: number; repairShare: number; lossShare: number; desc: string }[] = [
-  { key: 'basic', name: '기본', rate: 0, repairShare: 100, lossShare: 100, desc: '과실 파손 시 수리비 100% (잔존가치 한도)' },
-  { key: 'safe', name: '안심', rate: 5, repairShare: 30, lossShare: 100, desc: '과실 파손 시 수리비 30%만 부담 (렌탈당 1회)' },
-  { key: 'full', name: '완전 안심', rate: 10, repairShare: 0, lossShare: 50, desc: '과실 파손 0% (렌탈당 1회) · 분실 잔존가치 50%' },
+  { key: 'basic', name: '케어 없음', rate: 0, repairShare: 100, lossShare: 100, desc: '과실 파손 시 수리비 100% (잔존가치 한도)' },
+  { key: 'safe', name: '베이직', rate: 0.5, repairShare: 50, lossShare: 100, desc: '과실 파손 시 수리비 50%만 부담' },
+  { key: 'full', name: '프리미엄', rate: 0.8, repairShare: 20, lossShare: 100, desc: '과실 파손 시 수리비 20%만 부담' },
 ]
 export const planOf = (k: PlanKey | undefined) => PLANS.find((x) => x.key === k) ?? PLANS[0]
-// 보장 월 요금 = 품목 월 대여료 × rate, 100원 단위 반올림
-export const careFee = (k: PlanKey | undefined, monthly: number) => Math.round((monthly * planOf(k).rate) / 100 / 100) * 100
+// 케어 월 요금 = 공식몰가 × rate, 100원 단위 반올림 (예: 공식몰가 377,000원 → 베이직 1,900원 · 프리미엄 3,000원)
+export const careFee = (k: PlanKey | undefined, officialPrice: number) => Math.round((officialPrice * planOf(k).rate) / 100 / 100) * 100

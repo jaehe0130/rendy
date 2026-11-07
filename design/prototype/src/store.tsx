@@ -37,7 +37,7 @@ const seed: State = {
 }
 
 const KEY = 'modu-proto-v1'
-// 주소에 ?demo 를 붙이면 로그인 · 학교 인증된 데모 회원으로 시작 (QR 심사용). 장바구니는 비워 두고 심사위원이 직접 고른 것만 담김
+// 항상 로그인 · 학교 인증된 데모 회원으로 시작 (해커톤 시연: 로그인 화면 없음). 장바구니는 비워 두고 심사위원이 직접 고른 것만 담김
 function demoState(): State {
   return {
     ...seed,
@@ -54,21 +54,19 @@ function demoState(): State {
 }
 
 function load(): State {
-  let demo = false
-  try { demo = new URLSearchParams(location.search).has('demo') } catch { /* 무시 */ }
   try {
     const raw = localStorage.getItem(KEY)
-    // ?demo 로 다시 들어와도, 이 브라우저에 이미 기록(로그인한 데모 회원)이 있으면 그대로 이어서 씀
-    if (raw && (!demo || JSON.parse(raw).user)) {
+    // 이 브라우저에 기록(데모 회원)이 있으면 그대로 이어서 씀. 회원 정보가 없는 예전 기록은 새 데모 회원으로
+    if (raw && JSON.parse(raw).user) {
       const s = { ...seed, ...JSON.parse(raw) }
-      // 예전 데이터(care: true/false)를 보장 단계로 바꿈
+      // 예전 데이터(care: true/false)를 파손 케어 단계로 바꿈
       const fix = <T extends { plan?: PlanKey; care?: boolean }>(x: T) => ({ ...x, plan: x.plan ?? (x.care ? 'full' : 'basic') })
       // v3.2에서 위탁(맡기기)과 위탁 전용 품목을 뺐으므로 예전 저장 데이터에서 걸러냄
       const known = (x: { productId: string }) => !!productById(x.productId)
       return { ...s, cart: s.cart.map(fix).filter(known), rentals: s.rentals.map(fix).filter(known), waitlist: s.waitlist.filter((id: string) => !!productById(id)), sells: s.sells.filter((x: SellCase) => x.kind === '팔기') }
     }
   } catch { /* 저장소를 못 쓰면 기본값 */ }
-  return demo ? demoState() : seed
+  return demoState()
 }
 
 interface Ctx extends State {

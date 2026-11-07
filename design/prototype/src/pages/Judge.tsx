@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { planOf, productById, won, type PlanKey } from '../data'
-import { Illust, Toast } from '../components'
+import { Toast, ProductArt } from '../components'
 import { useStore } from '../store'
 
 // 운영자 반납 최종 판정 (기능명세서 DMG-05 · ADM-03). AI는 흠집 후보만 표시하고, 판정은 운영자가 한다.
@@ -16,7 +16,7 @@ interface Case {
 }
 
 const REVIEW_MARGIN_CM = 0.5 // 2cm 기준 ± 이 안이면 AI 분류를 믿지 않고 운영자 확인 (실험 길이 오차 평균 약 1.5cm)
-const FACES = ['정면', '옆면', '작동 화면']
+const FACES = ['정면', '옆면', '전원 ON 사진']
 
 const CASES: Case[] = [
   { id: 'J-1103', productId: 'humidifier', who: '이○○ · 정릉동', plan: 'safe', released: '2025.03', lifeMonths: 60, aiCat: '변화 없음', conf: '낮음', marks: [], note: '반납 사진 반사광이 심해 비교 실패', repair: 0 },
@@ -98,7 +98,7 @@ export default function Judge() {
                     <tr key={f}><td style={{ fontSize: 13 }}>{f}</td>
                       {['출고', '받은 날', '반납'].map((k) => (
                         <td key={k}><div style={{ position: 'relative', background: p.bg, display: 'grid', placeItems: 'center', height: 96, borderRadius: 2 }}>
-                          <Illust k={p.illust} size={64} />
+                          <ProductArt p={p} size={64} />
                           {k === '반납' && m && <div style={{ position: 'absolute', left: `${m.x}%`, top: `${m.y}%`, width: `${m.w}%`, height: `${m.h}%`, border: '2px solid var(--primary)' }} title={`${m.cm}cm`} />}
                           {k === '반납' && m && <span className="badge orange" style={{ position: 'absolute', right: 4, bottom: 4 }}>{m.cm}cm</span>}
                         </div></td>
@@ -117,7 +117,7 @@ export default function Judge() {
             <div className="field"><label>최종 분류</label><div className="chips">{(['생활 마모', '과실 파손', '자연 고장'] as Cat[]).map((x) => <button key={x} className={`chip ${cat === x ? 'on' : ''}`} onClick={() => setCat(x)}>{x}</button>)}</div></div>
             {cat === '과실 파손' && <div className="field"><label htmlFor="rp">수리비</label><input id="rp" className="input" inputMode="numeric" value={repair} onChange={(e) => setRepair(+e.target.value.replace(/\D/g, '') || 0)} style={{ maxWidth: 200 }} /></div>}
             {differs && <div className="field"><label htmlFor="rs">AI와 다르게 판정한 사유 (필수)</label><input id="rs" className="input" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="예: 반사광을 흠집으로 봄" /></div>}
-            <div className="kv"><span>보장 단계</span><b>{planOf(c.plan).name}</b></div>
+            <div className="kv"><span>파손 케어</span><b>{planOf(c.plan).name}</b></div>
             <div className="kv"><span>잔존가치 (부담 상한)</span><b>{won(cap)}</b></div>
             <div className="kv" style={{ fontSize: 18 }}><span>고객 부담</span><b style={{ color: 'var(--primary)' }}>{won(pay)}</b></div>
             <button className="btn block" disabled={!!done[c.id] || (differs && !reason)} onClick={confirm}>{done[c.id] ? `확정됨 · ${done[c.id]}` : '판정 확정'}</button>

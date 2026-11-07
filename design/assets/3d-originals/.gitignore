@@ -1,0 +1,2 @@
+# 원본 3D 스캔(개당 12MB)은 저장소에 올리지 않음. 웹용으로 줄인 파일은 prototype/public/models/
+*.glb

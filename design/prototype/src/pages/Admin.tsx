@@ -79,7 +79,7 @@ export default function Admin() {
       <div className="panel stack gap-12" style={{ marginBottom: 24 }}>
         <h2 className="serif" style={{ fontSize: 22 }}>최근 렌탈</h2>
         <div className="scroll-x"><table className="table" style={{ minWidth: 640 }}>
-          <thead><tr><th>주문번호</th><th>품목</th><th>기간</th><th>요금</th><th>보장</th><th>상태</th></tr></thead>
+          <thead><tr><th>주문번호</th><th>품목</th><th>기간</th><th>요금</th><th>파손 케어</th><th>상태</th></tr></thead>
           <tbody>{rentals.map((r) => (
             <tr key={r.id}><td className="faint">{r.id}</td><td>{productById(r.productId)!.name}</td><td>{r.start} ~ {r.end}</td><td>{r.mode === 'long' ? `월 ${won(r.price)}` : won(r.price)}</td><td>{planOf(r.plan).name}</td><td><span className={`badge ${r.status === '반납 신청' ? 'orange' : ''}`}>{r.status}</span></td></tr>
           ))}</tbody>
@@ -93,7 +93,7 @@ export default function Admin() {
           <tbody>{SCHOOLS.map((s) => {
             const n = schoolCounts[s.name] ?? s.count
             const next = [100, 200, 300].find((g) => n < g)
-            const got = [n >= 100 && '연장 쿠폰', n >= 200 && '대기 우선', n >= 300 && '완전 안심 3개월'].filter(Boolean).join(' · ')
+            const got = [n >= 100 && '연장 쿠폰', n >= 200 && '대기 우선', n >= 300 && '프리미엄 케어 3개월'].filter(Boolean).join(' · ')
             return <tr key={s.name}><td><b>{s.name}</b></td><td>{n}명</td><td>{next ? `${next}명까지 ${next - n}명` : '전 단계 달성'}</td><td>{got || '-'}</td></tr>
           })}</tbody>
         </table></div>

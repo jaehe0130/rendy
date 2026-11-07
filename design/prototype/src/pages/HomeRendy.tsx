@@ -1,14 +1,14 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { PRODUCTS, SCHOOLS, lowest, productById, won } from '../data'
-import { Illust, ProductCard } from '../components'
+import { ProductCard, ProductArt } from '../components'
 import { useStore, dday } from '../store'
 import '../rendy-home.css'
 
 // 렌디 메인 (집업 스타일: 가운데 큰 제목 + 앱 화면 목업 + 해시태그 혜택 카드 + 신뢰 + 후기 + FAQ)
 
 const FAQ: [string, string][] = [
-  ['보증금은 정말 없나요?', '네. 결제 카드만 등록해요. 파손은 렌터카 자차처럼 보장 단계를 골라요. 기본(월 0원, 수리비 100%) · 안심(월 대여료의 5%, 수리비 30%) · 완전 안심(월 대여료의 10%, 0%). 2cm 이하 생활 마모는 어떤 단계든 0원이에요.'],
+  ['보증금은 정말 없나요?', '네. 결제 카드만 등록해요. 파손이 걱정되면 파손 케어를 고를 수 있어요. 베이직(월 공식몰가의 0.5%, 수리비 50%) · 프리미엄(월 0.8%, 수리비 20%). 2cm 이하 생활 마모는 케어 없이도 0원이에요.'],
   ['최소 얼마나 빌려야 하나요?', '2개월부터 1개월 단위로 연장해요. 반납 2주 전부터는 1주 단위로 최대 3주까지 더 쓸 수 있어요.'],
   ['일찍 반납하면 환불되나요?', '처음 고른 기간이 약정이라 환불은 없어요. 대신 언제든 연장하거나 다른 가전으로 교체할 수 있어요.'],
   ['배송비는 얼마예요?', '주 2회 정해진 요일(화·금)에 배송·회수해요. 한 번에 결제하는 월 렌탈료가 3만원 이상이면 무료, 미만이면 1만원이에요.'],
@@ -70,7 +70,7 @@ function PhoneCheck() {
           <div className="stack"><small>옆면 긁힘 1.6cm · 생활 마모</small><b>예상 부담 0원</b></div>
         </div>
         <div className="rd-kv"><span>상태 점수</span><b>92 → 88</b></div>
-        <div className="rd-kv"><span>보장 단계</span><b>완전 안심</b></div>
+        <div className="rd-kv"><span>파손 케어</span><b>프리미엄</b></div>
         <div className="rd-kv"><span>최종 판정</span><b>운영자 확인 후</b></div>
       </div>
     </div>
@@ -118,7 +118,7 @@ export default function HomeRendy() {
           {[
             ['학교 인증하면 첫 달 50%', '성북구 7개 대학 학생이면 첫 렌탈 첫 달 반값, 배송비 1회 무료, 친구 초대 5,000원까지.', ['#첫달50%', '#배송비무료', '#친구초대'], '/school'],
             ['AI가 보는 흠집, 0원인 생활 마모', '출고·반납 사진을 AI가 비교해 새 흠집만 찾고 길이를 재요. 2cm 이하는 0원.', ['#출고사진비교', '#생활마모0원', '#운영자최종판정'], '/my'],
-            ['렌터카처럼 고르는 파손 보장', '기본 0원 · 안심 월 대여료의 5% · 완전 안심 10%. 내 상황에 맞게 골라요.', ['#기본', '#안심', '#완전안심'], '/products'],
+            ['고장 걱정은 파손 케어로', '베이직 수리비 50% · 프리미엄 20%만 부담. 필요할 때만 골라요.', ['#베이직', '#프리미엄', '#생활마모0원'], '/products'],
             ['떠날 땐 렌디가 사 갈게요', '이사·졸업할 때 사진 3장 올리면 예상 매입가를 바로 알려드려요. 무료로 가져가고 검수 끝나면 바로 입금해요. 렌디 이용자는 +5%p.', ['#바이백', '#무료수거', '#바로입금'], '/sell'],
           ].map(([t, d, tags, to]) => (
             <Link key={t as string} to={to as string} className="rd-card">
@@ -174,7 +174,7 @@ export default function HomeRendy() {
         <div className="rd-price-row">
           {PRODUCTS.map((p) => (
             <Link key={p.id} to={`/products/${p.id}`} className="rd-price">
-              <div style={{ background: p.bg }}><Illust k={p.illust} size={72} /></div>
+              <div style={{ background: p.bg }}><ProductArt p={p} size={72} /></div>
               <b>{p.name}</b><span>월 {won(lowest(p))}~</span>
             </Link>
           ))}

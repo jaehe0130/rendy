@@ -200,16 +200,22 @@ export function Footer() {
         <div className="stack gap-12">
           <Logo light />
           <p style={{ color: '#bfb8b0', fontSize: 14 }}>{BRAND.tagline}.<br />떠날 땐 렌디에 팔고 가는 성북구 살림</p>
-          <b style={{ fontSize: 14 }}>고객센터 1600-0000 · 평일 10~18시</b>
         </div>
         <div><p className="eyebrow" style={{ color: 'var(--ink-3)' }}>Service</p><Link to="/products">빌리기</Link><Link to="/ai">AI 살림 상담</Link><Link to="/sell">팔기</Link><Link to="/guide">가전 가이드</Link></div>
         <div><p className="eyebrow" style={{ color: 'var(--ink-3)' }}>Support</p><Link to="/">자주 묻는 질문</Link><Link to="/admin">운영자 화면</Link></div>
-        <div><p className="eyebrow" style={{ color: 'var(--ink-3)' }}>Policy</p><Link to="/">이용약관</Link><Link to="/">개인정보처리방침</Link><Link to="/">파손 보장 안내</Link></div>
+        <div><p className="eyebrow" style={{ color: 'var(--ink-3)' }}>Policy</p><Link to="/">이용약관</Link><Link to="/">개인정보처리방침</Link><Link to="/">파손 케어 안내</Link></div>
       </div>
       <div className="wm">{BRAND.en || BRAND.name}</div>
-      <div className="copy"><span>성북구해조 · 성북구 AI 지역문제 해결 해커톤 1차 프로토타입</span><span>© 2026 {BRAND.name}</span></div>
+      <div className="copy"><span>© 2026 {BRAND.name}</span></div>
     </footer>
   )
+}
+
+/** 상품 그림: 사진이 있으면 사진(i번째), 없거나 와이어프레임 모드면 일러스트 */
+export function ProductArt({ p, size, i = 0 }: { p: Product; size?: number; i?: number }) {
+  const ph = p.photos?.[i] ?? p.photos?.[0]
+  if (!ph || WIREFRAME) return <Illust k={p.illust} size={size} />
+  return <img className={`ill photo ${ph.fit}`} src={ph.src} alt={p.name} width={size} height={size} loading="lazy" />
 }
 
 export function ProductCard({ p }: { p: Product }) {
@@ -219,7 +225,7 @@ export function ProductCard({ p }: { p: Product }) {
       <div className="ph" style={{ background: p.bg }}>
         <span className={`badge ${sold ? 'solid' : 'soft'}`}>{sold ? `품절 · 대기 ${p.waitlist}명` : p.source}</span>
         <span className="heart" aria-hidden>{Icon.heart}</span>
-        <Illust k={p.illust} />
+        <ProductArt p={p} />
       </div>
       <div className="nm">{p.name}</div>
       <div className="pr">월 {won(lowest(p))}~</div>
@@ -229,12 +235,13 @@ export function ProductCard({ p }: { p: Product }) {
   )
 }
 
-export function SectionHead({ en, title, right }: { en: string; title: string; right?: ReactNode }) {
+// oneLine: 좁은 화면에서도 줄바꿈 없이 한 줄 (글자 크기를 화면 폭에 맞춰 줄임)
+export function SectionHead({ en, title, right, oneLine }: { en: string; title: string; right?: ReactNode; oneLine?: boolean }) {
   return (
     <div className="row between gap-16 wrap-row" style={{ alignItems: 'flex-end', marginBottom: 28 }}>
       <div className="stack gap-8">
         <span className="eyebrow">{en}</span>
-        <h2 className="serif" style={{ fontSize: 'clamp(26px, 3.4vw, 36px)' }}>{title}</h2>
+        <h2 className="serif" style={oneLine ? { fontSize: 'clamp(18px, 5.2vw, 36px)', whiteSpace: 'nowrap' } : { fontSize: 'clamp(26px, 3.4vw, 36px)' }}>{title}</h2>
       </div>
       {right}
     </div>
@@ -242,6 +249,9 @@ export function SectionHead({ en, title, right }: { en: string; title: string; r
 }
 
 export function FloatingAI() {
+  // 3D 보기 화면에서는 뷰어 도구 막대를 가려서 숨김
+  const { pathname } = useLocation()
+  if (pathname.endsWith('/3d')) return null
   return <Link to="/ai" className="floating-ai"><i />AI 살림 상담</Link>
 }
 

@@ -35,7 +35,7 @@ image = (
 app = modal.App("rendy-vision")
 
 
-@app.function(image=image, cpu=2.0, memory=4096, timeout=120, scaledown_window=900,
+@app.function(image=image, cpu=2.0, memory=4096, timeout=120, scaledown_window=120,
               min_containers=int(os.getenv("KEEP_WARM", "0")))
 @modal.asgi_app()
 def web():

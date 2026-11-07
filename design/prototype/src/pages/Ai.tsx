@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { deliveryFee, gradeFor, lowest, productById, won } from '../data'
-import { Illust } from '../components'
+import { Illust, ProductArt } from '../components'
 import { useStore } from '../store'
 
 type Msg = { from: 'ai' | 'me'; text: string }
@@ -105,7 +105,7 @@ export default function Ai() {
               {items.map((id) => { const p = productById(id)!; const sold = p.stock === 0; return (
                 <label key={id} className="row gap-12" style={{ cursor: sold ? 'default' : 'pointer', opacity: checked[id] ? 1 : .5 }}>
                   <input type="checkbox" checked={!!checked[id]} disabled={sold} onChange={(e) => setChecked({ ...checked, [id]: e.target.checked })} />
-                  <div style={{ background: p.bg, width: 56, height: 56, display: 'grid', placeItems: 'center' }}><Illust k={p.illust} size={42} /></div>
+                  <div style={{ background: p.bg, width: 56, height: 56, display: 'grid', placeItems: 'center' }}><ProductArt p={p} size={42} /></div>
                   <div className="stack" style={{ flex: 1 }}><b>{p.name}</b><span className="faint" style={{ fontSize: 12 }}>이유: {p.reasons[0][0]}</span><span className="faint" style={{ fontSize: 12 }}>{p.monthly.value != null ? `실속형 · ${p.bought.value} 매입` : `일반형 · ${p.bought.standard} 매입`} · 세척·점검 기록 있음</span></div>
                   {sold ? <button className="btn sm line" disabled={waitlist.includes(id)} onClick={(e) => { e.preventDefault(); if (!user) return nav('/login?next=/ai'); joinWaitlist(id) }}>{waitlist.includes(id) ? '대기 등록됨' : '품절 · 대기 신청'}</button> : <b>월 {won(lowest(p))}</b>}
                 </label>

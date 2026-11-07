@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { BUYBACK, PRODUCTS, won } from '../data'
-import { Illust, SectionHead, Toast } from '../components'
+import { Illust, SectionHead, Toast, ProductArt } from '../components'
 import { useStore } from '../store'
 import { Upload } from './My'
 
@@ -59,14 +59,14 @@ export default function Sell() {
             <div className="field"><label htmlFor="it">어떤 가전인가요?</label><select id="it" className="input" value={pid} onChange={(e) => { setPid(e.target.value); resetForm() }}>{PRODUCTS.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}</select></div>
             <div className="field"><label>구매 후 경과 기간</label><div className="chips">{['1년 이하', '1년~2년', '2년~3년'].map((x, i) => <button key={x} className={`chip ${years === i + 1 ? 'on' : ''}`} onClick={() => { setYears(i + 1); setQuote('idle') }}>{x}</button>)}</div></div>
             <div className="field"><label>상태</label><div className="chips">{['거의 새것', '생활 흠집', '눈에 띄는 흠집'].map((x, i) => <button key={x} className={`chip ${cond === i ? 'on' : ''}`} onClick={() => { setCond(i); setQuote('idle') }}>{x}</button>)}</div></div>
-            <div className="stack gap-4"><b style={{ fontSize: 14 }}>사진 3장 (정면 · 옆면 · 작동 화면)</b><span className="faint" style={{ fontSize: 12 }}>운영자가 수거 전에 매입 조건을 확인하고, 수거하는 날 같은 상태인지 비교해요.</span></div>
-            <div className="grid g3" style={{ gap: 8, gridTemplateColumns: 'repeat(3,1fr)' }}>{['정면', '옆면', '작동 화면'].map((x) => <Upload key={pid + x} label={x} onFile={() => setPhotos((n) => n + 1)} />)}</div>
+            <div className="stack gap-4"><b style={{ fontSize: 14 }}>사진 3장 (정면 · 옆면 · 전원 ON 사진)</b><span className="faint" style={{ fontSize: 12 }}>운영자가 수거 전에 매입 조건을 확인하고, 수거하는 날 같은 상태인지 비교해요.</span></div>
+            <div className="grid g3" style={{ gap: 8, gridTemplateColumns: 'repeat(3,1fr)' }}>{['정면', '옆면', '전원 ON 사진'].map((x) => <Upload key={pid + x} label={x} onFile={() => setPhotos((n) => n + 1)} />)}</div>
             <button className="btn block" disabled={photos < 3 || !canBuy} onClick={() => setQuote('done')}>{!canBuy ? '구매 2년 이내 제품만 매입해요' : `예상 매입가 확인 (${photos}/3)`}</button>
             <span className="demo-note">예상 매입가 = 공식몰가 × 매입률(구매 1년 이하 30% · 2년 이하 25%, 렌디 이용자 +5%p) × 상태(거의 새것 1.0 · 생활 흠집 0.85 · 눈에 띄는 흠집 0.7). 사진은 AI가 판정하지 않고 운영자가 확인해요.</span>
           </div>
 
           <div className="panel stack gap-16" style={{ position: 'sticky', top: 120 }}>
-            <div style={{ background: p.bg, display: 'grid', placeItems: 'center', padding: 20 }}><Illust k={p.illust} size={150} /></div>
+            <div style={{ background: p.bg, display: 'grid', placeItems: 'center', padding: 20 }}><ProductArt p={p} size={150} /></div>
             <b style={{ fontSize: 20 }}>{p.name}</b>
             {quote === 'done' ? (
               <>

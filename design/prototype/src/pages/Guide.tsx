@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { PRODUCTS, gradeFor, lowest, productById, won } from '../data'
-import { Bar, Illust, ProductCard } from '../components'
+import { Bar, Illust, ProductCard, ProductArt } from '../components'
 import { BRAND } from '../theme'
 import { useStore } from '../store'
 
@@ -91,7 +91,7 @@ export function Quiz() {
             <h2 className="serif" style={{ fontSize: 32 }}>{months}개월 추천 꾸러미</h2>
             <hr className="rule ink" />
             {picks.map((id) => { const p = productById(id)!; return (
-              <div key={id} className="row gap-16"><div style={{ background: p.bg, width: 64, height: 64, display: 'grid', placeItems: 'center' }}><Illust k={p.illust} size={48} /></div><div className="stack" style={{ flex: 1 }}><b>{p.name}</b><span className="muted" style={{ fontSize: 13 }}>{p.monthly.value != null ? '실속형' : '일반형'} · 월 {won(lowest(p))}</span></div></div>
+              <div key={id} className="row gap-16"><div style={{ background: p.bg, width: 64, height: 64, display: 'grid', placeItems: 'center' }}><ProductArt p={p} size={48} /></div><div className="stack" style={{ flex: 1 }}><b>{p.name}</b><span className="muted" style={{ fontSize: 13 }}>{p.monthly.value != null ? '실속형' : '일반형'} · 월 {won(lowest(p))}</span></div></div>
             ) })}
             <hr className="rule" />
             <div className="kv"><span>사면</span><b>{won(picks.reduce((a, id) => a + productById(id)!.newPrice, 0))}</b></div>
