@@ -26,10 +26,11 @@ export function ProductList() {
         <input className="input" placeholder="제습기, 건조기 검색" value={q} onChange={(e) => setQ(e.target.value)} aria-label="검색" style={{ maxWidth: 420 }} />
         <div className="chips">
           <button className={`chip ${!cat ? 'on' : ''}`} onClick={() => setSp({})}>전체</button>
-          {CATEGORIES.map((c) => <button key={c.key} className={`chip ${cat === c.key ? 'on' : ''}`} onClick={() => setSp({ cat: c.key })}>{c.name}</button>)}
+          {CATEGORIES.map((c) => <button key={c.key} className={`chip ${cat === c.key ? 'on' : ''}`} onClick={() => setSp(cat === c.key ? {} : { cat: c.key })}>{c.name}</button>)}
         </div>
         <div className="chips">
-          {([['all', '전체'], ['value', '실속형 있음']] as const).map(([k, l]) => <button key={k} className={`chip ${mode === k ? 'on' : ''}`} onClick={() => setMode(k)}>{l}</button>)}
+          {/* 켜진 필터를 한 번 더 누르면 꺼짐 */}
+          <button className={`chip ${mode === 'value' ? 'on' : ''}`} onClick={() => setMode(mode === 'value' ? 'all' : 'value')}>실속형 있음</button>
           <button className={`chip ${stockOnly ? 'on' : ''}`} onClick={() => setStockOnly(!stockOnly)}>지금 빌릴 수 있는 것만</button>
         </div>
       </div>
@@ -38,7 +39,7 @@ export function ProductList() {
         <div className="card stack gap-12" style={{ alignItems: 'flex-start' }}>
           <b>찾는 가전이 없어요.</b>
           <span className="muted">AI 살림 상담에 상황을 말해주면 맞는 가전을 골라드려요.</span>
-          <Link to="/ai" className="btn line sm">AI 상담 하기</Link>
+          <Link to="/ai" className="btn line sm">AI 살림 상담하기</Link>
         </div>
       )}
     </section>

@@ -15,8 +15,6 @@ import { Guide, Quiz } from './pages/Guide'
 import Ai from './pages/Ai'
 import My from './pages/My'
 import Sell from './pages/Sell'
-import Admin from './pages/Admin'
-import Judge from './pages/Judge'
 import Try from './pages/Try'
 // 3D 뷰어는 model-viewer(약 1MB)가 필요해서 이 화면을 열 때만 불러옴
 const Viewer3D = lazy(() => import('./pages/Viewer3D'))
@@ -51,8 +49,6 @@ export default function App() {
         <Route path="/ai" element={<Ai />} />
         <Route path="/my" element={<My />} />
         <Route path="/sell" element={<Sell />} />
-        <Route path="/admin" element={<Admin />} />
-        <Route path="/admin/judge" element={<Judge />} />
         <Route path="/try" element={<Try />} />
         <Route path="*" element={<Main />} />
       </Route>

@@ -174,8 +174,7 @@ export function Header() {
         {open && (
           <div className="mobile-nav" onClick={() => setOpen(false)}>
             {NAV.map((n) => <Link key={n.to} to={n.to}>{n.label}</Link>)}
-            <Link to="/my">내 렌탈</Link>
-            <Link to="/admin">운영자</Link>
+            <Link to="/my">내 렌탈 · 팔기 내역</Link>
           </div>
         )}
       </header>
@@ -202,8 +201,7 @@ export function Footer() {
           <p style={{ color: '#bfb8b0', fontSize: 14 }}>{BRAND.tagline}.<br />떠날 땐 렌디에 팔고 가는 성북구 살림</p>
         </div>
         <div><p className="eyebrow" style={{ color: 'var(--ink-3)' }}>Service</p><Link to="/products">빌리기</Link><Link to="/ai">AI 살림 상담</Link><Link to="/sell">팔기</Link><Link to="/guide">가전 가이드</Link></div>
-        <div><p className="eyebrow" style={{ color: 'var(--ink-3)' }}>Support</p><Link to="/">자주 묻는 질문</Link><Link to="/admin">운영자 화면</Link></div>
-        <div><p className="eyebrow" style={{ color: 'var(--ink-3)' }}>Policy</p><Link to="/">이용약관</Link><Link to="/">개인정보처리방침</Link><Link to="/">파손 케어 안내</Link></div>
+        <div><p className="eyebrow" style={{ color: 'var(--ink-3)' }}>My</p><Link to="/my">내 렌탈</Link><Link to="/my">팔기 내역</Link><Link to="/school">학생 혜택</Link><Link to="/try">AI 반납 판정 체험</Link></div>
       </div>
       <div className="wm">{BRAND.en || BRAND.name}</div>
       <div className="copy"><span>© 2026 {BRAND.name}</span></div>
@@ -218,21 +216,23 @@ export function ProductArt({ p, size, i = 0 }: { p: Product; size?: number; i?: 
   return <img className={`ill photo ${ph.fit}`} src={ph.src} alt={p.name} width={size} height={size} loading="lazy" />
 }
 
+// 품절이면 눌러지지 않는 카드 (상세로 안 넘어감)
 export function ProductCard({ p }: { p: Product }) {
   const sold = p.stock === 0
-  return (
-    <Link to={`/products/${p.id}`} className="pcard">
+  const body = (
+    <>
       <div className="ph" style={{ background: p.bg }}>
         <span className={`badge ${sold ? 'solid' : 'soft'}`}>{sold ? `품절 · 대기 ${p.waitlist}명` : p.source}</span>
-        <span className="heart" aria-hidden>{Icon.heart}</span>
+        {!sold && <span className="heart" aria-hidden>{Icon.heart}</span>}
         <ProductArt p={p} />
       </div>
       <div className="nm">{p.name}</div>
-      <div className="pr">월 {won(lowest(p))}~</div>
+      <div className="pr">{sold ? '지금은 모두 대여 중' : `월 ${won(lowest(p))}~`}</div>
       <div className="mt">{p.monthly.value ? '2개월부터 · 일반형 / 실속형' : '2개월부터 · 일반형'}</div>
       <div className="mt">★ {p.rating.toFixed(1)} · 리뷰 {p.reviewCount}</div>
-    </Link>
+    </>
   )
+  return sold ? <div className="pcard sold" aria-disabled="true">{body}</div> : <Link to={`/products/${p.id}`} className="pcard">{body}</Link>
 }
 
 // oneLine: 좁은 화면에서도 줄바꿈 없이 한 줄 (글자 크기를 화면 폭에 맞춰 줄임)

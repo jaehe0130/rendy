@@ -356,3 +356,8 @@ img.ill.photo.scene { object-fit: cover; }
 html.capture body { position: relative; }
 html.capture .modal-bg { position: absolute; min-height: 100%; align-items: start; padding-top: 40px; }
 html.capture .modal { max-height: none; overflow: visible; }
+
+/* 품절 카드: 흐리게, 눌러지지 않음 */
+.pcard.sold { cursor: not-allowed; }
+.pcard.sold .ph > :not(.badge) { opacity: .45; filter: grayscale(.6); }
+.pcard.sold .nm, .pcard.sold .pr, .pcard.sold .mt { color: var(--ink-3); }

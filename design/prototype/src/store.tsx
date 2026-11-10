@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
-import { priceOf, productById, SCHOOLS, type PlanKey } from './data'
+import { gradeFor, priceOf, productById, SCHOOLS, type PlanKey } from './data'
 
 export type Grade = 'standard' | 'value'
 export interface CartItem { key: string; productId: string; mode: 'long' | 'short'; grade: Grade; months: number; weeks: number; plan: PlanKey }
@@ -79,6 +79,7 @@ interface Ctx extends State {
   joinWaitlist: (productId: string) => void
   extendRental: (id: string, months: number) => void
   requestReturn: (id: string) => void
+  swapRental: (id: string, productId: string) => void
   addSell: (c: Omit<SellCase, 'id' | 'date'>) => void
   reset: () => void
 }
@@ -122,6 +123,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     // 1개월 단위 연장
     extendRental: (id, months) => setS((p) => ({ ...p, rentals: p.rentals.map((r) => (r.id === id ? { ...r, end: iso(addMonths(addDays(new Date(r.end), 1), months)) } : r)) })),
     requestReturn: (id) => setS((p) => ({ ...p, rentals: p.rentals.map((r) => (r.id === id ? { ...r, status: '반납 신청' } : r)) })),
+    // 다른 가전으로 교체: 남은 기간 그대로, 다음 배송일에 바꿔 감 (등급이 없으면 일반형)
+    swapRental: (id, productId) => setS((p) => ({ ...p, rentals: p.rentals.map((r) => {
+      if (r.id !== id) return r
+      const np = productById(productId)!
+      const grade = gradeFor(np, r.grade)
+      return { ...r, productId, grade, price: priceOf(np, grade) }
+    }) })),
     addSell: (c) => setS((p) => ({ ...p, sells: [{ ...c, id: 'S-' + Date.now(), date: iso(new Date()) }, ...p.sells] })),
     // 처음부터 다시: 데모 회원 상태로 (장바구니 · 신청 기록 비움)
     reset: () => setS(demoState()),

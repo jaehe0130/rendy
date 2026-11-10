@@ -1,12 +1,12 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { BUYBACK, PRODUCTS, won } from '../data'
 import { Illust, SectionHead, Toast, ProductArt } from '../components'
 import { useStore } from '../store'
 import { Upload } from './My'
 
 export default function Sell() {
-  const { user, rentals, addSell } = useStore()
+  const { user, rentals, sells, addSell } = useStore()
   const nav = useNavigate()
   // ?view=quote (예상 매입가 결과) (시안 캡처·시연용)
   const viewQ = new URLSearchParams(location.search).get('view')
@@ -26,7 +26,7 @@ export default function Sell() {
   const lo = Math.round((base * 0.9) / 1000) * 1000
   const hi = Math.round((base * 1.1) / 1000) * 1000
   const needLogin = () => { if (!user) { nav('/login?next=/sell'); return true } return false }
-  const done = (m: string) => { setToast(m); setTimeout(() => { setToast(''); nav('/my') }, 1400) }
+  const done = (m: string) => { setToast(m); setTimeout(() => { setToast(''); nav('/my#sells') }, 1400) }
   const resetForm = () => { setQuote('idle'); setPhotos(0) }
 
   return (
@@ -37,6 +37,7 @@ export default function Sell() {
             <span className="eyebrow">Sell · Buyback</span>
             <h1 className="serif" style={{ fontSize: 'clamp(34px,5vw,52px)' }}>떠날 때 가전,<br />버리지 말고 렌디에 파세요</h1>
             <p className="muted">이사 · 입대 · 유학 · 졸업으로 정리할 때. 사진 3장으로 견적, 무료 수거, 검수 끝나면 바로 입금.</p>
+            <Link to="/my#sells" className="btn line sm" style={{ alignSelf: 'flex-start' }}>내가 판 가전 · 진행 상황 보기{sells.length ? ` (${sells.length})` : ''} ›</Link>
           </div>
           <Illust k="box" size={200} />
         </div>
@@ -79,7 +80,7 @@ export default function Sell() {
                 <div className="kv"><span>최종가</span><b>수거 후 운영자 검수(작동 · 전기 안전 · 흠집)로 확정</b></div>
                 <span className="faint" style={{ fontSize: 12 }}>검수 결과는 사진과 함께 보여드려요. 범위를 벗어나면 먼저 동의를 받고, 원하지 않으면 무료로 돌려드려요.</span>
                 {!member && <span className="faint" style={{ fontSize: 12 }}>렌디에서 빌려 쓴 적이 있으면 매입가를 5%p 더 드려요.</span>}
-                <button className="btn block" onClick={() => { if (needLogin()) return; addSell({ kind: '팔기', item: p.name, amount: `${won(lo)} ~ ${won(hi)}`, status: '수거 예약 · 검수 후 확정' }); done('수거 예약 완료. 검수 끝나면 바로 입금돼요') }}>수거 신청하기</button>
+                <button className="btn block" onClick={() => { if (needLogin()) return; addSell({ kind: '팔기', item: p.name, amount: `${won(lo)} ~ ${won(hi)}`, status: '수거 예약 · 검수 후 확정' }); done('수거 예약 완료. 내 렌탈 > 팔기 내역에서 진행 상황을 볼 수 있어요') }}>수거 신청하기</button>
               </>
             ) : (
               <span className="faint" style={{ fontSize: 14 }}>구매 후 경과 기간 · 상태를 고르고 사진 3장을 올리면 예상 매입가를 알려드려요.</span>

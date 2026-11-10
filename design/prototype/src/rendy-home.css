@@ -77,3 +77,19 @@
   .rd-price-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .rd-phones { height: 470px; transform: scale(.82); transform-origin: top center; }
 }
+
+/* 히어로 할인 · 내 방 꾸러미 · 3D */
+.rd-eyebrow { display: inline-block; font-size: 13px; font-weight: 700; color: #0b7f6a; background: #eaf8f4; padding: 6px 14px; border-radius: 999px; margin-bottom: 16px; }
+.rd-deals { display: flex; justify-content: center; flex-wrap: wrap; gap: 10px; margin: -8px auto 28px; }
+.rd-deals span { display: flex; flex-direction: column; background: #fff; border: 1px solid #ffd9c2; border-radius: 16px; padding: 10px 18px; font-size: 12px; color: var(--ink-2); box-shadow: 0 6px 18px rgba(255, 122, 47, .08); }
+.rd-deals b { font-size: 18px; color: #ff7a2f; letter-spacing: -0.02em; }
+.rd-room-grid { max-width: 900px; margin: 0 auto; }
+.rd-room-sum { max-width: 900px; margin: 28px auto 0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; background: #eaf8f4; border-radius: 20px; padding: 20px 24px; }
+.rd-room-sum b { font-size: 18px; }
+.rd-room-sum span { font-size: 14px; color: var(--ink-2); }
+.rd-3d { max-width: 1000px; margin: 0 auto; display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 28px; align-items: center; }
+.rd-3d-stage { position: relative; aspect-ratio: 1 / 1; border-radius: 28px; overflow: hidden; }
+.rd-3d-hint { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); font-size: 12px; background: rgba(20, 33, 61, .75); color: #fff; padding: 6px 12px; border-radius: 999px; pointer-events: none; }
+.rd-3d-wait { max-width: 1000px; margin: 0 auto; height: 360px; border-radius: 28px; background: #e9eef2; display: grid; place-items: center; color: var(--ink-3); }
+.rd-price.sold { opacity: .55; cursor: not-allowed; }
+@media (max-width: 760px) { .rd-3d { grid-template-columns: 1fr; } }

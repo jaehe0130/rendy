@@ -227,6 +227,12 @@ export const lowest = (p: Product) => p.monthly.value ?? p.monthly.standard
 // 첫 달 요금: 음식물 처리기는 4개월 미만이면 새 필터 요금
 export const firstMonth = (p: Product, g: 'standard' | 'value', months: number) => (p.shortFirst && months < 4 ? p.shortFirst : priceOf(p, g))
 export const deliveryFee = (monthlySum: number) => (monthlySum >= PRICING.freeOver ? 0 : PRICING.delivery)
+// 꾸러미 할인: 따로따로 빌리면 건마다 배송·회수비, 같이 빌리면 월 합계로 한 번만 (월 3만원 이상이면 0원)
+export function bundleSaving(monthly: number[]) {
+  const apart = monthly.reduce((a, m) => a + deliveryFee(m), 0)
+  const together = deliveryFee(monthly.reduce((a, m) => a + m, 0))
+  return { apart, together, saved: apart - together }
+}
 
 // 파손 케어 (선택, 2단계) — 발표자료 v14 기준: 베이직 월 공식몰가 0.5% · 수리비 50%, 프리미엄 월 0.8% · 수리비 20%
 // 키는 예전 저장 데이터와 맞추려고 유지 (basic = 케어 없음, safe = 베이직, full = 프리미엄)

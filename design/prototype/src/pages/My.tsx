@@ -1,6 +1,6 @@
-import { useState } from 'react'
-import { Link, Navigate } from 'react-router-dom'
-import { planOf, productById, won } from '../data'
+import { useEffect, useState } from 'react'
+import { Link, Navigate, useLocation } from 'react-router-dom'
+import { PRODUCTS, gradeFor, lowest, planOf, priceOf, productById, won, type Product } from '../data'
 import { Bar, Modal, Toast, ProductArt } from '../components'
 import { ReturnCompare } from '../ReturnCompare'
 import { useStore, dday, iso, addDays, addMonths, type Rental } from '../store'
@@ -16,7 +16,7 @@ export function Upload({ label, onFile }: { label: string; onFile?: (f: File) =>
 }
 
 export default function My() {
-  const { user, rentals, coupons, sells, waitlist, extendRental, requestReturn, reset } = useStore()
+  const { user, rentals, coupons, sells, waitlist, extendRental, requestReturn, swapRental, reset } = useStore()
   // ?open=extend | return | receive 이면 그 팝업을 열어 둔 채로 시작 (시안 캡처·시연용)
   const openQ = new URLSearchParams(location.search).get('open')
   const [ext, setExt] = useState<Rental | null>(openQ === 'extend' ? rentals[0] ?? null : null)
@@ -27,6 +27,10 @@ export default function My() {
   const [checked, setChecked] = useState<string[]>([]) // 받은 날 상태 확인을 마친 렌탈
   const [recv, setRecv] = useState<Rental | null>(openQ === 'receive' ? rentals[1] ?? rentals[0] ?? null : null)
   const [recvPhotos, setRecvPhotos] = useState(0)
+  const [swap, setSwap] = useState<Rental | null>(null)
+  // /my#sells 로 들어오면 팔기 내역으로 (화면 맨 위로 올리는 Layout 다음에 실행되게 살짝 늦춤)
+  const { hash } = useLocation()
+  useEffect(() => { if (hash === '#sells') setTimeout(() => document.getElementById('sells')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80) }, [hash])
   if (!user) return <Navigate to="/login?next=/my" replace />
   const flash = (m: string) => { setToast(m); setTimeout(() => setToast(''), 1800) }
   const active = rentals.filter((r) => r.status !== '회수 완료')
@@ -48,8 +52,7 @@ export default function My() {
           <b style={{ fontSize: 14 }}>대기 명단 {waitlist.length}</b>
           {waitlist.map((id) => <span key={id} className="faint" style={{ fontSize: 13 }}>· {productById(id)?.name} (입고 알림 대기)</span>)}
           <hr className="rule" />
-          <b style={{ fontSize: 14 }}>팔기 {sells.length}</b>
-          {sells.map((s) => <span key={s.id} className="faint" style={{ fontSize: 13 }}>· [{s.kind}] {s.item} · {s.amount} · {s.status}</span>)}
+          <a href="#sells" style={{ fontSize: 14, fontWeight: 700 }}>팔기 내역 {sells.length} ›</a>
           <hr className="rule" />
           <button className="faint" style={{ background: 'none', border: 0, fontSize: 12, textAlign: 'left' }} onClick={() => { reset(); flash('데모 데이터를 처음 상태로 돌렸어요') }}>데모 초기화</button>
         </aside>
@@ -81,13 +84,14 @@ export default function My() {
                 {r.status === '사용 중' && (
                   <div className="stack gap-8" style={{ width: 150 }}>
                     {r.mode === 'long' && <button className="btn sm" onClick={() => setExt(r)}>연장하기</button>}
-                    <Link className="btn line sm" to={`/products?cat=${p.category}`}>다른 걸로 교체</Link>
+                    <button className="btn line sm" onClick={() => setSwap(r)}>다른 걸로 교체</button>
                     <button className="btn line sm" onClick={() => setRet(r)}>반납 신청</button>
                   </div>
                 )}
               </div>
             )
           })}
+          <SellList />
           <Link to="/sell" className="row between wrap-row gap-16 bg-ink" style={{ padding: '28px 32px' }}>
             <div className="stack gap-4"><b style={{ fontSize: 20 }}>이사 · 입대 · 유학으로 떠나세요?</b><span style={{ color: 'var(--ink-3)', fontSize: 14 }}>쓰던 가전을 렌디에 팔면, 렌디 이용자는 매입가 +5%p를 더 받아요.</span></div>
             <span className="btn accent">팔기</span>
@@ -140,6 +144,30 @@ export default function My() {
           )}
         </Modal>
       )}
+      {swap && (
+        <Modal onClose={() => setSwap(null)}>
+          <div className="stack gap-12">
+            <h3 className="serif" style={{ fontSize: 26 }}>다른 가전으로 교체</h3>
+            <p className="muted" style={{ fontSize: 14 }}>{productById(swap.productId)!.name} · 남은 기간({swap.end}까지) 그대로, 다음 배송일(화·금)에 가져가면서 바꿔 드려요.</p>
+            {swapOptions(productById(swap.productId)!).map((np) => {
+              const g = gradeFor(np, swap.grade)
+              const diff = priceOf(np, g) - swap.price
+              return (
+                <div key={np.id} className="swap-opt">
+                  <div style={{ background: np.bg }}><ProductArt p={np} size={64} /></div>
+                  <div className="stack" style={{ flex: 1, minWidth: 0 }}>
+                    <b>{np.name}</b>
+                    <span className="faint" style={{ fontSize: 12 }}>{np.reasons[0][0]}</span>
+                    <span style={{ fontSize: 13 }}>월 {won(priceOf(np, g))} <span className="faint">({diff === 0 ? '지금과 같아요' : diff > 0 ? `+${won(diff)}` : `−${won(-diff)}`})</span></span>
+                  </div>
+                  <button className="btn sm" onClick={() => { swapRental(swap.id, np.id); setSwap(null); flash(`${np.name}(으)로 교체 신청했어요. 다음 배송일에 바꿔 드려요`) }}>이걸로 교체</button>
+                </div>
+              )
+            })}
+            <span className="faint" style={{ fontSize: 12 }}>교체 배송·회수는 한 번에 처리해서 배송비가 따로 들지 않아요 · 월 요금은 다음 결제일부터 바뀌어요</span>
+          </div>
+        </Modal>
+      )}
       {recv && (
         <Modal onClose={() => setRecv(null)}>
           <div className="stack gap-12">
@@ -153,5 +181,35 @@ export default function My() {
       )}
       <Toast msg={toast} />
     </section>
+  )
+}
+
+// 교체 후보 2개: 같은 종류에서 지금 빌릴 수 있는 것 먼저, 모자라면 다른 종류에서 (지금 빌린 것 · 품절 제외)
+function swapOptions(cur: Product) {
+  const ok = PRODUCTS.filter((x) => x.id !== cur.id && x.stock > 0)
+  return [...ok.filter((x) => x.category === cur.category), ...ok.filter((x) => x.category !== cur.category).sort((a, b) => lowest(a) - lowest(b))].slice(0, 2)
+}
+
+// 팔기 내역: 수거 예약 → 수거 · 검수 → 입금 (데모는 첫 단계)
+const SELL_STEPS = ['수거 예약', '수거 · 검수', '입금 완료']
+function SellList() {
+  const { sells } = useStore()
+  return (
+    <div id="sells" className="panel stack gap-12">
+      <div className="row between wrap-row"><b style={{ fontSize: 20 }}>팔기 내역</b><span className="muted" style={{ fontSize: 13 }}>{sells.length}건</span></div>
+      {sells.length === 0 ? (
+        <div className="row between wrap-row gap-12">
+          <span className="faint" style={{ fontSize: 14 }}>아직 판 가전이 없어요. 팔기에서 수거를 신청하면 여기서 진행 상황을 볼 수 있어요.</span>
+          <Link to="/sell" className="btn line sm">팔기</Link>
+        </div>
+      ) : sells.map((s) => (
+        <div key={s.id} className="sell-row">
+          <div className="row between wrap-row gap-8"><b>{s.item}</b><span className="faint" style={{ fontSize: 12 }}>{s.date} 신청 · {s.id}</span></div>
+          <div className="kv"><span>예상 매입가</span><b style={{ color: 'var(--primary)' }}>{s.amount}</b></div>
+          <div className="sell-steps">{SELL_STEPS.map((x, i) => <span key={x} className={i === 0 ? 'on' : ''}>{x}</span>)}</div>
+          <span className="faint" style={{ fontSize: 12 }}>다음 배송일(화·금)에 문 앞에서 무료로 가져가요 · 검수 끝나면 최종가를 사진과 함께 알려드리고 바로 입금해요</span>
+        </div>
+      ))}
+    </div>
   )
 }
