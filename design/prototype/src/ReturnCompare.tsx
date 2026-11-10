@@ -23,7 +23,29 @@ const kitOf = (id: string): Kit => KITS[id] ?? { name: '', pairs: [] }
 const firstBefore = (id: string) => kitOf(id).pairs[0]?.before ?? `/products/${id}-1.webp`
 
 interface Finding { bbox: number[]; lengthMm: number; confidence: number; suggestedClass: 'WEAR' | 'FAULT'; needsReview: boolean }
-export interface VisionRes { aligned: boolean; mismatch?: boolean; findings: Finding[]; image: string | null; ms: number }
+export interface VisionRes { aligned: boolean; mismatch?: boolean; findings: Finding[]; image: string | null; ms: number; saved?: boolean }
+
+// AI 서버가 꺼져 있을 때 보여 줄 저장된 결과: 예시 반납 사진 10쌍을 실제 모델로 비교한 결과 (2026-11-06)
+// 표시 이미지 = 모델이 낸 결과 그림(public/samples/result-*.webp), 길이 = 박스 긴 변 ÷ 사진 폭 × 30cm (서버와 같은 계산)
+// 분류는 서버와 같은 규칙: 20mm 이하 생활 마모, 20±15mm는 운영자 확인 필요
+const SAVED_MM: Record<string, number[]> = {
+  'dehumidifier-10-s1': [42.2, 39.8],
+  'dehumidifier-10-s2': [30.5, 28.9, 26.6],
+  'dehumidifier-10-s3': [26.6, 22.7, 19.5],
+  'dehumidifier-16-s1': [39.8, 25.8],
+  'dehumidifier-16-s3': [36.7, 32.8],
+  'foodwaste-s2': [31.2, 28.9, 15.6],
+  'foodwaste-s3': [25.8, 10.2],
+  'humidifier-s3': [25.0, 15.6],
+  'mini-dryer-s1': [39.1],
+  'mini-dryer-s3': [37.5],
+}
+const savedResult = (key: string): VisionRes | null => {
+  const mm = SAVED_MM[key]
+  if (!mm) return null
+  const findings: Finding[] = mm.map((l) => ({ bbox: [], lengthMm: l, confidence: 0.8, suggestedClass: l <= 20 ? 'WEAR' : 'FAULT', needsReview: Math.abs(l - 20) <= 15 }))
+  return { aligned: true, findings, image: `/samples/result-${key}.webp`, ms: 0, saved: true }
+}
 
 // 올리기 전에 긴 변 768px JPEG로 줄임 (전송 빠르게)
 function shrink(file: Blob): Promise<string> {
@@ -65,7 +87,7 @@ export function ReturnCompare({ plan, actions, kits = ['dehumidifier-10'], lockO
     if (!kk || !p) return
     const before = lockOutbound ? firstBefore(kk) : p.before
     setKit(kk); setOutbound(before)
-    ;(async () => { const a = await shrink(await (await fetch(`/samples/${p.key}.webp`)).blob()); setAfter(a); setPick(p.key); run(a, before) })()
+    ;(async () => { const a = await shrink(await (await fetch(`/samples/${p.key}.webp`)).blob()); setAfter(a); setPick(p.key); run(a, before, p.key) })()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -73,7 +95,7 @@ export function ReturnCompare({ plan, actions, kits = ['dehumidifier-10'], lockO
   const pickKit = (k: string) => { setKit(k); setOutbound(firstBefore(k)); setA('') }
   // 체험 화면: 예시 반납 사진을 고르면 출고 사진도 그 기기의 출고 사진으로 (내 렌탈 반납은 고정)
   const pickSample = async (p: Pair) => { if (!lockOutbound) setOutbound(p.before); setA(await shrink(await (await fetch(`/samples/${p.key}.webp`)).blob()), p.key) }
-  const run = async (a = after, before0 = outbound) => {
+  const run = async (a = after, before0 = outbound, key = pick) => {
     setState('busy'); setSlow(false); setErr(''); setRes(null)
     const t = setTimeout(() => setSlow(true), 8000)
     try {
@@ -83,7 +105,13 @@ export function ReturnCompare({ plan, actions, kits = ['dehumidifier-10'], lockO
       setRes(await r.json()); setState('done')
       setTimeout(() => resultRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 50)
     } catch (e) {
-      setErr(e instanceof Error ? e.message : '연결 실패'); setState('error')
+      // 서버가 꺼져 있으면: 예시 사진은 저장된 결과로, 직접 찍은 사진은 안내
+      // 반납 팝업은 출고 사진이 고정이라 긁힘 A(빌린 기기와 짝)일 때만 저장된 결과가 맞음
+      const saved = savedResult(key)
+      const same = !lockOutbound || before0 === kitOf(kit).pairs.find((x) => x.key === key)?.before
+      if (saved && same) { setRes(saved); setState('done'); setTimeout(() => resultRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 50) }
+      else if (saved) { setRes({ aligned: false, mismatch: true, findings: [], image: null, ms: 0, saved: true }); setState('done') }
+      else { setErr(e instanceof Error ? e.message : '연결 실패'); setState('error') }
     } finally { clearTimeout(t) }
   }
 
@@ -124,7 +152,7 @@ export function ReturnCompare({ plan, actions, kits = ['dehumidifier-10'], lockO
       {state !== 'done' && (
         <button className="btn block" disabled={!after || state === 'busy'} onClick={() => run()}>{state === 'busy' ? (slow ? 'AI 서버 깨우는 중… 최대 1분' : 'AI가 출고 사진과 비교하는 중…') : 'AI로 출고 사진과 비교하기'}</button>
       )}
-      {state === 'error' && <span className="muted" style={{ fontSize: 13 }}>AI 서버에 연결하지 못했어요 ({err}). 잠시 뒤 다시 눌러 주세요.</span>}
+      {state === 'error' && <span className="muted" style={{ fontSize: 13 }}>AI 서버에 연결하지 못했어요 ({err}). 지금은 위의 예시 사진(긁힘 A·B·C)으로 저장된 판정 결과를 볼 수 있어요.</span>}
 
       {state === 'done' && res && (
         <div ref={resultRef} className="stack gap-12">
@@ -141,7 +169,7 @@ export function ReturnCompare({ plan, actions, kits = ['dehumidifier-10'], lockO
               <b style={{ fontSize: 20 }}>{top ? `새로 생긴 흠집 ${res.findings.length}곳 · 약 ${(top.lengthMm / 10).toFixed(1)}cm` : '새로 생긴 흠집이 없어요'}</b>
               <div className="kv"><span>예상 분류</span><b>{wear ? '생활 마모' : '과실 파손 후보'}</b></div>
               <div className="kv"><span>예상 부담</span><b style={{ color: 'var(--primary)' }}>{wear ? '0원' : plan ? `수리비의 ${share}% (${plan === 'basic' ? '파손 케어 없음' : `${planOf(plan).name} 케어`})` : '파손 케어에 따라'}</b></div>
-              <span className="faint" style={{ fontSize: 12 }}>2cm 이하는 생활 마모라 0원 · AI는 후보만 표시하고, 회수 후 운영자가 최종 판정해요 · {(res.ms / 1000).toFixed(1)}초</span>
+              <span className="faint" style={{ fontSize: 12 }}>2cm 이하는 생활 마모라 0원 · AI는 후보만 표시하고, 회수 후 운영자가 최종 판정해요 · {res.saved ? '이 예시 사진을 AI 모델로 미리 비교해 둔 결과예요' : `${(res.ms / 1000).toFixed(1)}초`}</span>
               {actions?.(res, wear)}
             </>
           )}

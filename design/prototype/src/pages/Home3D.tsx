@@ -14,8 +14,8 @@ export default function Home3D() {
   return (
     <div className="rd-3d">
       <div className="rd-3d-stage" style={{ background: p.bg }}>
-        <model-viewer key={p.id} src={p.model3d!.src.standard} alt={`${p.name} 3D 스캔`} camera-controls="" auto-rotate="" auto-rotate-delay="0" rotation-per-second="24deg" interaction-prompt="none" shadow-intensity="1" exposure="1.05" camera-orbit="30deg 75deg 210%" touch-action="pan-y" style={{ width: '100%', height: '100%', background: 'transparent' }} />
-        <span className="rd-3d-hint">손가락으로 돌려 보세요</span>
+        <model-viewer key={p.id} src={p.model3d!.src.standard} alt={`${p.name} 3D 스캔`} camera-controls="" auto-rotate="" auto-rotate-delay="0" rotation-per-second="24deg" interaction-prompt="none" shadow-intensity="1" exposure="1.05" camera-orbit="30deg 75deg 210%" touch-action="pan-y" style={{ width: '100%', height: '100%', background: 'transparent' }}><div slot="progress-bar" /></model-viewer>
+        <span className="rd-3d-hint">끌어서 직접 돌려 보세요</span>
       </div>
       <div className="stack gap-12 rd-3d-side">
         <div className="chips">{LIST.map((x) => <button key={x.id} className={`chip ${id === x.id ? 'on' : ''}`} onClick={() => setId(x.id)}>{x.name}</button>)}</div>
@@ -26,6 +26,7 @@ export default function Home3D() {
           {marks.map((m) => <span key={m.title} style={{ fontSize: 14 }}>· {m.title} <span className="faint">{m.note}</span></span>)}
         </div>
         <Link to={`/products/${p.id}/3d`} className="btn">흠집 위치까지 3D로 자세히 보기 ›</Link>
+        <Link to={`/room?items=${p.id}`} className="btn line">내 방에 놓아 보기 ›</Link>
       </div>
     </div>
   )

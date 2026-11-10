@@ -1,11 +1,11 @@
-import { lazy, Suspense, useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { PRICING, PRODUCTS, SCHOOLS, bundleSaving, gradeFor, lowest, productById, won } from '../data'
 import { ProductCard, ProductArt } from '../components'
 import { useStore, dday } from '../store'
 import '../rendy-home.css'
 
-// 3D(model-viewer)는 무거워서 그 칸이 화면에 가까워졌을 때만 불러옴
+// 3D(model-viewer)는 무거워서 따로 나눠 불러옴 (첫 화면 글자가 먼저 뜨게)
 const Home3D = lazy(() => import('./Home3D'))
 
 // 렌디 메인 (집업 스타일: 가운데 큰 제목 + 앱 화면 목업 + 해시태그 혜택 카드 + 신뢰 + 후기 + FAQ)
@@ -111,29 +111,10 @@ function RoomPicker() {
         </div>
         <div className="row gap-8 wrap-row">
           <button className="btn" onClick={() => { ok.forEach((p) => addToCart({ productId: p.id, mode: 'long', grade: gradeFor(p, 'value'), months: 4, weeks: 1, plan: 'full' })); nav('/checkout') }}>이 꾸러미로 빌리기</button>
+          <Link to={`/room?room=${room === 's' ? 's' : 'm'}&items=${r.items.join(',')}`} className="btn line">3D로 내 방에 놓아 보기</Link>
           <Link to="/ai" className="btn line">AI 살림 상담으로 더 맞추기</Link>
         </div>
       </div>
-    </section>
-  )
-}
-
-// 3D 칸: 화면에 가까워지면 그때 model-viewer를 불러옴
-function Section3D() {
-  const ref = useRef<HTMLElement>(null)
-  const [show, setShow] = useState(false)
-  useEffect(() => {
-    const el = ref.current
-    if (!el || !('IntersectionObserver' in window)) { setShow(true); return }
-    const io = new IntersectionObserver((es) => { if (es.some((e) => e.isIntersecting)) { setShow(true); io.disconnect() } }, { rootMargin: '400px' })
-    io.observe(el)
-    return () => io.disconnect()
-  }, [])
-  return (
-    <section className="rd-section rd-soft" ref={ref}>
-      <h2 className="rd-h2">빌리기 전에<br />3D로 돌려 보세요</h2>
-      <p className="rd-sub" style={{ textAlign: 'center', marginTop: -24 }}>렌디가 가진 실제 기기를 스캔했어요. 크기와 원래 있던 흠집 위치까지 확인하고 빌려요.</p>
-      {show ? <Suspense fallback={<div className="rd-3d-wait">3D 불러오는 중…</div>}><Home3D /></Suspense> : <div className="rd-3d-wait">3D 불러오는 중…</div>}
     </section>
   )
 }
@@ -159,11 +140,12 @@ export default function HomeRendy() {
           <Link to="/products" className="btn line">전체 가전 보기</Link>
           <Link to="/try" className="btn line">AI 반납 판정 체험</Link>
         </div>
-        <div className="rd-phones"><PhoneCheck /><PhoneHome /></div>
+        <div className="rd-hero-3d">
+          <Suspense fallback={<div className="rd-3d-wait">3D 불러오는 중…</div>}><Home3D /></Suspense>
+        </div>
       </section>
 
       <RoomPicker />
-      <Section3D />
 
       {/* 2. 한 문장 */}
       <section className="rd-statement">
@@ -179,6 +161,13 @@ export default function HomeRendy() {
             <div key={n} className="rd-step"><span className="rd-step-n">{n}</span><b>{a}</b><p>{b}</p></div>
           ))}
         </div>
+      </section>
+
+      {/* 3-1. 앱 화면 (히어로에서 내려옴) */}
+      <section className="rd-section rd-app">
+        <h2 className="rd-h2">앱에서는 이렇게 보여요</h2>
+        <p className="rd-sub" style={{ textAlign: 'center', marginTop: -24 }}>반납일 · 연장 · 혜택은 홈에서, 반납할 땐 AI 예비 판정까지</p>
+        <div className="rd-phones"><PhoneCheck /><PhoneHome /></div>
       </section>
 
       {/* 4. 혜택 카드 (해시태그) */}

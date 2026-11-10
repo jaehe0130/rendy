@@ -93,3 +93,9 @@
 .rd-3d-wait { max-width: 1000px; margin: 0 auto; height: 360px; border-radius: 28px; background: #e9eef2; display: grid; place-items: center; color: var(--ink-3); }
 .rd-price.sold { opacity: .55; cursor: not-allowed; }
 @media (max-width: 760px) { .rd-3d { grid-template-columns: 1fr; } }
+
+/* 히어로 3D: 들어오자마자 직접 돌려 보기 */
+.rd-hero-3d { max-width: 1000px; margin: 40px auto 0; padding-bottom: clamp(48px, 6vw, 80px); text-align: left; }
+.rd-hero-3d .rd-3d-stage { box-shadow: 0 30px 60px rgba(20, 33, 61, .12); }
+.rd-app { overflow: hidden; background: radial-gradient(60% 50% at 50% 60%, #e3f6f1 0%, #f4f2ff 45%, #ffffff 80%); }
+.rd-app .rd-phones { margin-top: 24px; }
