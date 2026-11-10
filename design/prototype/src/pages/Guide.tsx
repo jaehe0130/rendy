@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { PRODUCTS, bundleSaving, gradeFor, lowest, productById, won } from '../data'
-import { Bar, Illust, ProductCard, ProductArt } from '../components'
+import { Bar, Illust, ProductCard, ProductArt, Toast } from '../components'
 import { BRAND } from '../theme'
 import { useStore } from '../store'
 
@@ -69,6 +69,9 @@ export function Quiz() {
   const [ans, setAns] = useState<number[]>(showResult ? [1, 0, 1, 1] : [])
   const nav = useNavigate()
   const { addToCart, user } = useStore()
+  const [toast, setToast] = useState('')
+  // 결과 공유: 프로토타입이라 링크 복사만 실제로, 나머지는 공유된 모습만
+  const share = (x: string) => { if (x === '링크 복사') navigator.clipboard?.writeText(location.origin + '/quiz').catch(() => {}); setToast(x === '링크 복사' ? '링크를 복사했어요' : `${x}로 결과를 공유했어요 (예시)`); setTimeout(() => setToast(''), 1800) }
   if (i >= QS.length) {
     const indoor = ans[1] === 0 || ans[1] === 1
     const leaving = ans[2] === 3
@@ -102,10 +105,11 @@ export function Quiz() {
               <button className="btn" onClick={() => { picks.forEach((id) => addToCart({ productId: id, mode: 'long', grade: gradeFor(productById(id)!, 'value'), months: Math.max(2, months), weeks: 1, plan: 'full' })); nav(user ? '/checkout' : '/login?next=/checkout') }}>꾸러미로 빌리기</button>
               <Link to="/ai" className="btn line">AI 살림 상담하기</Link>
             </div>
-            <div className="row gap-8 wrap-row"><b style={{ fontSize: 14 }}>결과 공유</b>{['카카오톡', '인스타 스토리', '링크 복사'].map((x) => <span key={x} className="chip">{x}</span>)}</div>
+            <div className="row gap-8 wrap-row"><b style={{ fontSize: 14 }}>결과 공유</b>{['카카오톡', '인스타 스토리', '링크 복사'].map((x) => <button key={x} className="chip" onClick={() => share(x)}>{x}</button>)}</div>
             <button className="faint" style={{ background: 'none', border: 0, textAlign: 'left', fontSize: 13 }} onClick={() => { setI(0); setAns([]) }}>다시 진단하기</button>
           </div>
         </div>
+        <Toast msg={toast} />
       </section>
     )
   }

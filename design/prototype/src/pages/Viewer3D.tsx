@@ -137,11 +137,8 @@ export default function Viewer3D() {
     setAuto(true)
     if (mv.current) { mv.current.resetTurntableRotation(0); mv.current.cameraOrbit = orbitOf('front'); mv.current.fieldOfView = 'auto' }
   }
-  const ar = () => {
-    const el = mv.current
-    if (el?.canActivateAR) el.activateAR()
-    else flash('휴대폰에서 이 화면을 열면 내 방에 놓아볼 수 있어요')
-  }
+  // 내 방에 놓기: 휴대폰 AR 대신 어디서나 되는 3D 방(/room)으로 이 가전을 들고 감 (방 크기는 상품 '방 크기'에 맞춤)
+  const ar = () => nav(`/room?items=${p.id}${/투룸/.test(p.specs.find(([k]) => k === '방 크기')?.[1] ?? '') ? '&room=m' : ''}`)
   const changeGrade = (g: Grade) => { setGrade(g); setSel(null); setView('front'); setAuto(true) }
   const rent = (go: boolean) => {
     addToCart({ productId: p.id, mode: 'long', grade, months: Math.max(4, p.minMonths), weeks: 1, plan: 'full' })
@@ -241,7 +238,7 @@ export default function Viewer3D() {
             <button onClick={() => zoom(1.25)}>축소 −</button>
             <button onClick={reset}>원래대로</button>
             <button className={pins ? 'on' : ''} aria-pressed={pins} onClick={() => { setPins(!pins); setSel(null) }}>흠집 핀</button>
-            <button onClick={ar}>내 방에 놓기 (AR)</button>
+            <button onClick={ar}>내 방에 놓아 보기</button>
           </div>
         </div>
 

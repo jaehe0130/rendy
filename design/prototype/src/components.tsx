@@ -183,6 +183,8 @@ export function Header() {
 }
 
 export function Footer() {
+  // 소식 받기: 프로토타입이라 실제로 보내지는 않고 신청된 모습만
+  const [subbed, setSubbed] = useState(false)
   return (
     <footer className="footer">
       <div className="news">
@@ -190,10 +192,12 @@ export function Footer() {
           <span className="eyebrow" style={{ color: 'var(--ink-2)' }}>Neighbors first</span>
           <b style={{ fontSize: 20 }}>새로 들어온 가전과 동네 혜택을 먼저 받아보세요</b>
         </div>
-        <div className="row" style={{ border: '1px solid var(--ink)', background: '#fff', minWidth: 'min(420px,100%)' }}>
-          <input className="input" style={{ border: 0 }} placeholder="휴대폰 번호 또는 이메일" aria-label="소식 받을 연락처" />
-          <button className="btn" style={{ margin: 4 }}>소식 받기</button>
-        </div>
+        {subbed ? <b style={{ color: 'var(--primary)' }}>신청됐어요. 새 가전 · 동네 혜택 소식을 보내드릴게요</b> : (
+          <form className="row" style={{ border: '1px solid var(--ink)', background: '#fff', minWidth: 'min(420px,100%)' }} onSubmit={(e) => { e.preventDefault(); setSubbed(true) }}>
+            <input className="input" style={{ border: 0 }} placeholder="휴대폰 번호 또는 이메일" aria-label="소식 받을 연락처" />
+            <button className="btn" style={{ margin: 4 }}>소식 받기</button>
+          </form>
+        )}
       </div>
       <div className="cols">
         <div className="stack gap-12">
