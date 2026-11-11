@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
-import { PRICING, careFee, planOf, priceOf, deliveryFee as feeFor, firstMonth, productById, won } from '../data'
-import { Illust } from '../components'
+import { PRICING, bundleSaving, careFee, planOf, deliveryFee as feeFor, firstMonth, productById, won } from '../data'
+import { ProductArt } from '../components'
 import { useStore, iso, addDays } from '../store'
 
 // 배송은 문 앞 지정일(화·금)만. 오늘 + 2일부터 다가오는 화·금 6번을 고를 수 있게
@@ -12,6 +12,26 @@ function deliveryDays(count = 6) {
   return out
 }
 const dayLabel = (s: string) => { const d = new Date(s); return `${d.getMonth() + 1}/${d.getDate()} (${DOW[d.getDay()]})` }
+
+// 꾸러미 할인 안내 (꾸러미가 비었을 때): 따로 빌리면 건마다 배송·회수비, 같이 빌리면 월 3만원 이상 0원
+function BundleTip() {
+  const a = productById('dehumidifier-10')!, b = productById('mini-dryer')!
+  const ex = bundleSaving([a.monthly.standard, b.monthly.standard])
+  return (
+    <div className="bundle-tip stack gap-12">
+      <b style={{ fontSize: 17 }}>여러 개를 꾸러미로 같이 빌리면 더 싸요</b>
+      <div className="stack gap-4" style={{ fontSize: 14 }}>
+        <span>· 월 렌탈료 합계 {won(PRICING.freeOver)} 이상이면 <b>배송·회수 0원</b> (따로 빌리면 건마다 {won(PRICING.delivery)})</span>
+        <span>· 학교 인증 회원은 <b>첫 렌탈 첫 달 50%</b> (최대 {won(PRICING.firstMonthCouponMax)}) · <b>배송비 1회 무료</b></span>
+        <span>· 친구 초대하면 둘 다 {won(PRICING.inviteCoupon)} 할인</span>
+      </div>
+      <div className="bundle-ex">
+        <span>예) {a.name} 월 {won(a.monthly.standard)} + {b.name} 월 {won(b.monthly.standard)}</span>
+        <span>따로 빌리면 배송·회수 <s>{won(ex.apart)}</s> → 꾸러미로 <b>{won(ex.together)}</b> · <b className="hl">{won(ex.saved)} 절약</b></span>
+      </div>
+    </div>
+  )
+}
 
 export function Checkout() {
   const { cart, user, coupons, removeFromCart, checkout } = useStore()
@@ -27,14 +47,15 @@ export function Checkout() {
       <section className="section stack gap-16" style={{ alignItems: 'flex-start' }}>
         <h1 className="serif" style={{ fontSize: 34 }}>꾸러미가 비어 있어요</h1>
         <p className="muted">가전을 담거나 AI 살림 상담으로 꾸러미를 추천받아 보세요.</p>
-        <div className="row gap-12"><Link to="/products" className="btn">가전 보러 가기</Link><Link to="/ai" className="btn line">AI 상담</Link></div>
+        <BundleTip />
+        <div className="row gap-12"><Link to="/products" className="btn">가전 보러 가기</Link><Link to="/ai" className="btn line">AI 살림 상담</Link></div>
       </section>
     )
 
   const lines = cart.map((c) => {
     const p = productById(c.productId)!
     const first = c.mode === 'long' ? firstMonth(p, c.grade, c.months) : c.weeks === 1 ? p.weekly!.w1 : p.weekly!.w2
-    const care = careFee(c.plan, priceOf(p, c.grade))
+    const care = careFee(c.plan, p.newPrice)
     return { c, p, first, care }
   })
   const n = cart.length
@@ -50,6 +71,7 @@ export function Checkout() {
   }).filter((d) => d.amt > 0)
   const disc = discounts.reduce((a, d) => a + d.amt, 0)
   const today = Math.max(0, rentFirst + careFirst + deliveryFee - disc)
+  const bundle = bundleSaving(lines.map((l) => l.first))
   const monthlyAfter = lines.filter((l) => l.c.mode === 'long').reduce((a, l) => a + (l.c.grade === 'value' && l.p.monthly.value != null ? l.p.monthly.value : l.p.monthly.standard) + l.care, 0)
 
   const submit = () => {
@@ -66,10 +88,10 @@ export function Checkout() {
             <b style={{ fontSize: 18 }}>담은 가전 {n > 1 && '· 같은 날 받고 같은 날 반납'}</b>
             {lines.map(({ c, p, first }) => (
               <div key={c.key} className="row gap-16">
-                <div style={{ background: p.bg, width: 72, height: 72, display: 'grid', placeItems: 'center', flexShrink: 0 }}><Illust k={p.illust} size={54} /></div>
+                <div style={{ background: p.bg, width: 72, height: 72, display: 'grid', placeItems: 'center', flexShrink: 0 }}><ProductArt p={p} size={54} /></div>
                 <div className="stack" style={{ flex: 1 }}>
                   <b>{p.name}</b>
-                  <span className="muted" style={{ fontSize: 13 }}>{c.mode === 'long' ? `${c.grade === 'standard' ? '일반형' : '실속형'} · ${c.months}개월 · 월 ${won(first)}` : `1주 단기 · ${c.weeks}주 · ${won(first)}`}{` · ${planOf(c.plan).name} 보장`}</span>
+                  <span className="muted" style={{ fontSize: 13 }}>{c.mode === 'long' ? `${c.grade === 'standard' ? '일반형' : '실속형'} · ${c.months}개월 · 월 ${won(first)}` : `1주 단기 · ${c.weeks}주 · ${won(first)}`}{` · ${c.plan === 'basic' ? '파손 케어 없음' : `${planOf(c.plan).name} 케어`}`}</span>
                 </div>
                 <button className="faint" style={{ background: 'none', border: 0, fontSize: 13 }} onClick={() => removeFromCart(c.key)}>빼기</button>
               </div>
@@ -109,13 +131,24 @@ export function Checkout() {
           <b className="serif" style={{ fontSize: 22 }}>결제 요약</b>
           <hr className="rule ink" />
           <div className="kv"><span>첫 달 렌탈료</span><b>{won(rentFirst)}</b></div>
-          {careFirst > 0 && <div className="kv"><span>파손 보장</span><b>{won(careFirst)}</b></div>}
+          {careFirst > 0 && <div className="kv"><span>파손 케어</span><b>{won(careFirst)}</b></div>}
           <div className="kv"><span>보증금</span><b>없음</b></div>
           <div className="kv"><span>배송 · 회수</span><b>{deliveryFee ? won(deliveryFee) : `0원 (${won(PRICING.freeOver)} 이상)`}</b></div>
           {discounts.map((d) => <div key={d.c.id} className="kv"><span>{d.c.title}</span><b style={{ color: 'var(--primary)' }}>-{won(d.amt)}</b></div>)}
           <hr className="rule" />
           <div className="kv" style={{ alignItems: 'baseline' }}><span>오늘 결제</span><b className="serif" style={{ fontSize: 28 }}>{won(today)}</b></div>
           {monthlyAfter > 0 && <span className="faint" style={{ fontSize: 13 }}>2개월째부터 매달 {won(monthlyAfter)} 정기 결제</span>}
+          {bundle.saved > 0 ? (
+            <div className="bundle-save">
+              <b>꾸러미로 빌려서 {won(bundle.saved)} 아꼈어요</b>
+              <span>따로 빌리면 배송·회수 {won(bundle.apart)} ({n}건 × {won(PRICING.delivery)}) → 꾸러미로 {won(bundle.together)}</span>
+            </div>
+          ) : rentFirst < PRICING.freeOver ? (
+            <div className="bundle-save soft">
+              <b>{won(PRICING.freeOver - rentFirst)}만 더 담으면 배송·회수 0원</b>
+              <span>월 렌탈료 합계 {won(PRICING.freeOver)} 이상이면 꾸러미 배송·회수가 무료예요</span>
+            </div>
+          ) : null}
           <button className="btn block" onClick={submit}>{won(today)} 결제하기</button>
           <span className="demo-note">프로토타입: 실제 결제는 일어나지 않아요.</span>
         </div>

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { PRODUCTS, gradeFor, lowest, productById, won } from '../data'
-import { Bar, Illust, ProductCard } from '../components'
+import { PRODUCTS, bundleSaving, gradeFor, lowest, productById, won } from '../data'
+import { Bar, Illust, ProductCard, ProductArt, Toast } from '../components'
 import { BRAND } from '../theme'
 import { useStore } from '../store'
 
@@ -69,6 +69,9 @@ export function Quiz() {
   const [ans, setAns] = useState<number[]>(showResult ? [1, 0, 1, 1] : [])
   const nav = useNavigate()
   const { addToCart, user } = useStore()
+  const [toast, setToast] = useState('')
+  // 결과 공유: 프로토타입이라 링크 복사만 실제로, 나머지는 공유된 모습만
+  const share = (x: string) => { if (x === '링크 복사') navigator.clipboard?.writeText(location.origin + '/quiz').catch(() => {}); setToast(x === '링크 복사' ? '링크를 복사했어요' : `${x}로 결과를 공유했어요 (예시)`); setTimeout(() => setToast(''), 1800) }
   if (i >= QS.length) {
     const indoor = ans[1] === 0 || ans[1] === 1
     const leaving = ans[2] === 3
@@ -76,6 +79,7 @@ export function Quiz() {
     const picks = [indoor ? 'mini-dryer' : null, 'dehumidifier-10', ans[3] === 2 ? 'humidifier' : null].filter(Boolean) as string[]
     const type = indoor ? '장마철 뽀송 지킴이형' : leaving ? '가볍게 떠나는 노마드형' : '쾌적한 공기 관리형'
     const sum = picks.reduce((a, id) => a + lowest(productById(id)!), 0)
+    const bundle = bundleSaving(picks.map((id) => lowest(productById(id)!)))
     return (
       <section className="section bg-surface">
         <div className="split" style={{ gridTemplateColumns: 'min(420px,100%) minmax(0,1fr)' }}>
@@ -91,19 +95,21 @@ export function Quiz() {
             <h2 className="serif" style={{ fontSize: 32 }}>{months}개월 추천 꾸러미</h2>
             <hr className="rule ink" />
             {picks.map((id) => { const p = productById(id)!; return (
-              <div key={id} className="row gap-16"><div style={{ background: p.bg, width: 64, height: 64, display: 'grid', placeItems: 'center' }}><Illust k={p.illust} size={48} /></div><div className="stack" style={{ flex: 1 }}><b>{p.name}</b><span className="muted" style={{ fontSize: 13 }}>{p.monthly.value != null ? '실속형' : '일반형'} · 월 {won(lowest(p))}</span></div></div>
+              <div key={id} className="row gap-16"><div style={{ background: p.bg, width: 64, height: 64, display: 'grid', placeItems: 'center' }}><ProductArt p={p} size={48} /></div><div className="stack" style={{ flex: 1 }}><b>{p.name}</b><span className="muted" style={{ fontSize: 13 }}>{p.monthly.value != null ? '실속형' : '일반형'} · 월 {won(lowest(p))}</span></div></div>
             ) })}
             <hr className="rule" />
             <div className="kv"><span>사면</span><b>{won(picks.reduce((a, id) => a + productById(id)!.newPrice, 0))}</b></div>
             <div className="kv"><span>{months}개월 빌리면</span><b className="serif" style={{ fontSize: 24 }}>{won(sum * months)}</b></div>
+            {bundle.saved > 0 && <div className="bundle-save"><b>꾸러미로 빌리면 {won(bundle.saved)} 더 싸요</b><span>따로 빌리면 배송·회수 {won(bundle.apart)} → 꾸러미로 {won(bundle.together)}</span></div>}
             <div className="row gap-12 wrap-row">
               <button className="btn" onClick={() => { picks.forEach((id) => addToCart({ productId: id, mode: 'long', grade: gradeFor(productById(id)!, 'value'), months: Math.max(2, months), weeks: 1, plan: 'full' })); nav(user ? '/checkout' : '/login?next=/checkout') }}>꾸러미로 빌리기</button>
-              <Link to="/ai" className="btn line">AI랑 더 상담하기</Link>
+              <Link to="/ai" className="btn line">AI 살림 상담하기</Link>
             </div>
-            <div className="row gap-8 wrap-row"><b style={{ fontSize: 14 }}>결과 공유</b>{['카카오톡', '인스타 스토리', '링크 복사'].map((x) => <span key={x} className="chip">{x}</span>)}</div>
+            <div className="row gap-8 wrap-row"><b style={{ fontSize: 14 }}>결과 공유</b>{['카카오톡', '인스타 스토리', '링크 복사'].map((x) => <button key={x} className="chip" onClick={() => share(x)}>{x}</button>)}</div>
             <button className="faint" style={{ background: 'none', border: 0, textAlign: 'left', fontSize: 13 }} onClick={() => { setI(0); setAns([]) }}>다시 진단하기</button>
           </div>
         </div>
+        <Toast msg={toast} />
       </section>
     )
   }

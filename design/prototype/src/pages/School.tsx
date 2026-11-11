@@ -127,7 +127,7 @@ function Race({ counts, mine }: { counts: Record<string, number>; mine?: string 
           )
         })}
       </div>
-      <p className="muted" style={{ marginTop: 16, fontSize: 14 }}>100명 전원 연장 쿠폰 3,000원 · 200명 대기 명단 우선 배정 · 300명 전원 완전 안심 보장 3개월 무료</p>
+      <p className="muted" style={{ marginTop: 16, fontSize: 14 }}>100명 전원 연장 쿠폰 3,000원 · 200명 대기 명단 우선 배정 · 300명 전원 프리미엄 케어 3개월 무료</p>
     </section>
   )
 }

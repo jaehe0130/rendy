@@ -1,12 +1,12 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { BUYBACK, PRODUCTS, won } from '../data'
-import { Illust, SectionHead, Toast } from '../components'
+import { Illust, SectionHead, Toast, ProductArt } from '../components'
 import { useStore } from '../store'
 import { Upload } from './My'
 
 export default function Sell() {
-  const { user, rentals, addSell } = useStore()
+  const { user, rentals, sells, addSell } = useStore()
   const nav = useNavigate()
   // ?view=quote (예상 매입가 결과) (시안 캡처·시연용)
   const viewQ = new URLSearchParams(location.search).get('view')
@@ -26,7 +26,7 @@ export default function Sell() {
   const lo = Math.round((base * 0.9) / 1000) * 1000
   const hi = Math.round((base * 1.1) / 1000) * 1000
   const needLogin = () => { if (!user) { nav('/login?next=/sell'); return true } return false }
-  const done = (m: string) => { setToast(m); setTimeout(() => { setToast(''); nav('/my') }, 1400) }
+  const done = (m: string) => { setToast(m); setTimeout(() => { setToast(''); nav('/my#sells') }, 1400) }
   const resetForm = () => { setQuote('idle'); setPhotos(0) }
 
   return (
@@ -37,6 +37,7 @@ export default function Sell() {
             <span className="eyebrow">Sell · Buyback</span>
             <h1 className="serif" style={{ fontSize: 'clamp(34px,5vw,52px)' }}>떠날 때 가전,<br />버리지 말고 렌디에 파세요</h1>
             <p className="muted">이사 · 입대 · 유학 · 졸업으로 정리할 때. 사진 3장으로 견적, 무료 수거, 검수 끝나면 바로 입금.</p>
+            <Link to="/my#sells" className="btn line sm" style={{ alignSelf: 'flex-start' }}>내가 판 가전 · 진행 상황 보기{sells.length ? ` (${sells.length})` : ''} ›</Link>
           </div>
           <Illust k="box" size={200} />
         </div>
@@ -59,14 +60,14 @@ export default function Sell() {
             <div className="field"><label htmlFor="it">어떤 가전인가요?</label><select id="it" className="input" value={pid} onChange={(e) => { setPid(e.target.value); resetForm() }}>{PRODUCTS.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}</select></div>
             <div className="field"><label>구매 후 경과 기간</label><div className="chips">{['1년 이하', '1년~2년', '2년~3년'].map((x, i) => <button key={x} className={`chip ${years === i + 1 ? 'on' : ''}`} onClick={() => { setYears(i + 1); setQuote('idle') }}>{x}</button>)}</div></div>
             <div className="field"><label>상태</label><div className="chips">{['거의 새것', '생활 흠집', '눈에 띄는 흠집'].map((x, i) => <button key={x} className={`chip ${cond === i ? 'on' : ''}`} onClick={() => { setCond(i); setQuote('idle') }}>{x}</button>)}</div></div>
-            <div className="stack gap-4"><b style={{ fontSize: 14 }}>사진 3장 (정면 · 옆면 · 작동 화면)</b><span className="faint" style={{ fontSize: 12 }}>운영자가 수거 전에 매입 조건을 확인하고, 수거하는 날 같은 상태인지 비교해요.</span></div>
-            <div className="grid g3" style={{ gap: 8, gridTemplateColumns: 'repeat(3,1fr)' }}>{['정면', '옆면', '작동 화면'].map((x) => <Upload key={pid + x} label={x} onFile={() => setPhotos((n) => n + 1)} />)}</div>
+            <div className="stack gap-4"><b style={{ fontSize: 14 }}>사진 3장 (정면 · 옆면 · 전원 ON 사진)</b><span className="faint" style={{ fontSize: 12 }}>운영자가 수거 전에 매입 조건을 확인하고, 수거하는 날 같은 상태인지 비교해요.</span></div>
+            <div className="grid g3" style={{ gap: 8, gridTemplateColumns: 'repeat(3,1fr)' }}>{['정면', '옆면', '전원 ON 사진'].map((x) => <Upload key={pid + x} label={x} onFile={() => setPhotos((n) => n + 1)} />)}</div>
             <button className="btn block" disabled={photos < 3 || !canBuy} onClick={() => setQuote('done')}>{!canBuy ? '구매 2년 이내 제품만 매입해요' : `예상 매입가 확인 (${photos}/3)`}</button>
             <span className="demo-note">예상 매입가 = 공식몰가 × 매입률(구매 1년 이하 30% · 2년 이하 25%, 렌디 이용자 +5%p) × 상태(거의 새것 1.0 · 생활 흠집 0.85 · 눈에 띄는 흠집 0.7). 사진은 AI가 판정하지 않고 운영자가 확인해요.</span>
           </div>
 
           <div className="panel stack gap-16" style={{ position: 'sticky', top: 120 }}>
-            <div style={{ background: p.bg, display: 'grid', placeItems: 'center', padding: 20 }}><Illust k={p.illust} size={150} /></div>
+            <div style={{ background: p.bg, display: 'grid', placeItems: 'center', padding: 20 }}><ProductArt p={p} size={150} /></div>
             <b style={{ fontSize: 20 }}>{p.name}</b>
             {quote === 'done' ? (
               <>
@@ -79,7 +80,7 @@ export default function Sell() {
                 <div className="kv"><span>최종가</span><b>수거 후 운영자 검수(작동 · 전기 안전 · 흠집)로 확정</b></div>
                 <span className="faint" style={{ fontSize: 12 }}>검수 결과는 사진과 함께 보여드려요. 범위를 벗어나면 먼저 동의를 받고, 원하지 않으면 무료로 돌려드려요.</span>
                 {!member && <span className="faint" style={{ fontSize: 12 }}>렌디에서 빌려 쓴 적이 있으면 매입가를 5%p 더 드려요.</span>}
-                <button className="btn block" onClick={() => { if (needLogin()) return; addSell({ kind: '팔기', item: p.name, amount: `${won(lo)} ~ ${won(hi)}`, status: '수거 예약 · 검수 후 확정' }); done('수거 예약 완료. 검수 끝나면 바로 입금돼요') }}>수거 신청하기</button>
+                <button className="btn block" onClick={() => { if (needLogin()) return; addSell({ kind: '팔기', item: p.name, amount: `${won(lo)} ~ ${won(hi)}`, status: '수거 예약 · 검수 후 확정' }); done('수거 예약 완료. 내 렌탈 > 팔기 내역에서 진행 상황을 볼 수 있어요') }}>수거 신청하기</button>
               </>
             ) : (
               <span className="faint" style={{ fontSize: 14 }}>구매 후 경과 기간 · 상태를 고르고 사진 3장을 올리면 예상 매입가를 알려드려요.</span>

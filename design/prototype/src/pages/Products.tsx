@@ -2,8 +2,9 @@ import { useMemo, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { CATEGORIES, PLANS, PRODUCTS, careFee, planOf, deliveryFee, firstMonth, priceOf, productById, usedFor, won, type Category } from '../data'
 import type { PlanKey } from '../data'
-import { Bar, Icon, Illust, Modal, ProductCard, SectionHead, Toast } from '../components'
+import { Bar, Icon, Modal, ProductCard, SectionHead, Toast, ProductArt } from '../components'
 import { useStore, type Grade } from '../store'
+import '../viewer3d.css'
 
 export function ProductList() {
   const [sp, setSp] = useSearchParams()
@@ -25,10 +26,11 @@ export function ProductList() {
         <input className="input" placeholder="제습기, 건조기 검색" value={q} onChange={(e) => setQ(e.target.value)} aria-label="검색" style={{ maxWidth: 420 }} />
         <div className="chips">
           <button className={`chip ${!cat ? 'on' : ''}`} onClick={() => setSp({})}>전체</button>
-          {CATEGORIES.map((c) => <button key={c.key} className={`chip ${cat === c.key ? 'on' : ''}`} onClick={() => setSp({ cat: c.key })}>{c.name}</button>)}
+          {CATEGORIES.map((c) => <button key={c.key} className={`chip ${cat === c.key ? 'on' : ''}`} onClick={() => setSp(cat === c.key ? {} : { cat: c.key })}>{c.name}</button>)}
         </div>
         <div className="chips">
-          {([['all', '전체'], ['value', '실속형 있음']] as const).map(([k, l]) => <button key={k} className={`chip ${mode === k ? 'on' : ''}`} onClick={() => setMode(k)}>{l}</button>)}
+          {/* 켜진 필터를 한 번 더 누르면 꺼짐 */}
+          <button className={`chip ${mode === 'value' ? 'on' : ''}`} onClick={() => setMode(mode === 'value' ? 'all' : 'value')}>실속형 있음</button>
           <button className={`chip ${stockOnly ? 'on' : ''}`} onClick={() => setStockOnly(!stockOnly)}>지금 빌릴 수 있는 것만</button>
         </div>
       </div>
@@ -37,7 +39,7 @@ export function ProductList() {
         <div className="card stack gap-12" style={{ alignItems: 'flex-start' }}>
           <b>찾는 가전이 없어요.</b>
           <span className="muted">AI 살림 상담에 상황을 말해주면 맞는 가전을 골라드려요.</span>
-          <Link to="/ai" className="btn line sm">AI 상담 하기</Link>
+          <Link to="/ai" className="btn line sm">AI 살림 상담하기</Link>
         </div>
       )}
     </section>
@@ -65,7 +67,7 @@ export function ProductDetail() {
   const total = mode === 'long' ? first + unit * (months - 1) : unit
   const saved = p.newPrice - total
   const fee = deliveryFee(unit)
-  const careOf = (k: PlanKey) => careFee(k, priceOf(p, grade))
+  const careOf = (k: PlanKey) => careFee(k, p.newPrice)
   const careSum = careOf(plan) * (mode === 'long' ? months : 1)
   const flash = (m: string) => { setToast(m); setTimeout(() => setToast(''), 1800) }
   const add = (go: boolean) => {
@@ -78,10 +80,11 @@ export function ProductDetail() {
         <p className="faint" style={{ fontSize: 13, marginBottom: 20 }}><Link to="/products">빌리기</Link> / {CATEGORIES.find((c) => c.key === p.category)?.name} / {p.name}</p>
         <div className="split" style={{ gridTemplateColumns: 'minmax(0,1fr) min(460px,100%)' }}>
           <div className="grid g2" style={{ gap: 12 }}>
-            {[0, 1, 2, 3].map((i) => (
-              <div key={i} style={{ background: p.bg, aspectRatio: '1/1.1', display: 'grid', placeItems: 'center', position: 'relative' }}>
-                <Illust k={p.illust} size={i === 0 ? 220 : 150} />
+            {(p.photos?.length === 1 ? [0] : p.photos ? p.photos.map((_, i) => i).slice(0, 4) : [0, 1, 2, 3]).map((i, _, all) => (
+              <div key={i} className="gallery-tile" style={{ background: p.bg, aspectRatio: all.length === 1 ? '1/0.9' : '1/1.1', gridColumn: all.length === 1 || (all.length === 3 && i === 0) ? '1 / -1' : undefined, display: 'grid', placeItems: 'center', position: 'relative', overflow: 'hidden' }}>
+                <ProductArt p={p} i={i} size={i === 0 ? 220 : 150} />
                 {i === 0 && <span className="badge solid" style={{ position: 'absolute', top: 12, left: 12 }}>세척 후 실물</span>}
+                {i === 0 && p.model3d && <Link to={`/products/${p.id}/3d`} className="v3d-open"><i>3D</i>돌려보기 ›</Link>}
               </div>
             ))}
           </div>
@@ -146,21 +149,21 @@ export function ProductDetail() {
                     </div>
                   </div>
                 )}
-                <div className="stack gap-8"><b>파손 보장 단계 <span className="faint" style={{ fontWeight: 400, fontSize: 12 }}>렌터카 자차처럼 골라요</span></b>
+                <div className="stack gap-8"><b>파손 케어 <span className="faint" style={{ fontWeight: 400, fontSize: 12 }}>선택 · 2단계</span></b>
                   <div className="grid g3" style={{ gap: 8, gridTemplateColumns: 'repeat(3,1fr)' }}>
                     {PLANS.map((x) => (
                       <button key={x.key} className={`opt ${plan === x.key ? 'on' : ''}`} onClick={() => setPlan(x.key)} style={{ textAlign: 'left' }}>
                         <b>{x.name}{x.key === 'full' ? ' · 추천' : ''}</b>
-                        <small>월 {won(careOf(x.key))}{x.rate ? ` (대여료의 ${x.rate}%)` : ''}</small>
+                        <small>월 {won(careOf(x.key))}{x.rate ? ` (공식몰가의 ${x.rate}%)` : ''}</small>
                         <small style={{ color: 'var(--ink)', fontWeight: 700, marginTop: 4 }}>과실 파손 수리비 {x.repairShare}%</small>
                       </button>
                     ))}
                   </div>
-                  <span className="faint" style={{ fontSize: 12 }}>{planOf(plan).desc} · 2cm 이하 생활 마모는 어떤 단계든 0원 · 고의 파손은 보장 제외</span>
+                  <span className="faint" style={{ fontSize: 12 }}>{planOf(plan).desc} · 2cm 이하 생활 마모는 케어 없이도 0원 · 고의 파손은 케어 제외</span>
                 </div>
                 <div className="stack gap-4" style={{ border: '1px solid var(--ink)', padding: '14px 16px' }}>
                   <b style={{ fontSize: 14 }}>신청 전 총비용 · {won(total + fee + careSum)}</b>
-                  <span className="faint" style={{ fontSize: 12 }}>{months}개월 대여료 {won(total)} + 배송·회수 {fee ? won(fee) : '0원 (월 3만원 이상)'}{careSum ? ` + ${planOf(plan).name} 보장 ${won(careSum)}` : ''} · 쿠폰 전 금액</span>
+                  <span className="faint" style={{ fontSize: 12 }}>{months}개월 대여료 {won(total)} + 배송·회수 {fee ? won(fee) : '0원 (월 3만원 이상)'}{careSum ? ` + ${planOf(plan).name} 케어 ${won(careSum)}` : ''} · 쿠폰 전 금액</span>
                 </div>
                 <div style={{ background: 'var(--peach)', padding: 18 }} className="stack gap-8">
                   <div className="row gap-8"><span className="badge orange">AI</span><span className="eyebrow">Saving report</span></div>
@@ -205,7 +208,7 @@ export function ProductDetail() {
           <p className="muted" style={{ marginTop: 16, fontSize: 14 }}>소모품: {p.consumable}</p>
         </div>
         <div className="panel stack gap-16" style={{ marginTop: 24 }}>
-          <SectionHead en="Device history" title="이 기기 이력 (기기마다 QR)" />
+          <SectionHead en="Device history" title="이 기기 이력 (기기마다 QR)" oneLine />
           <div className="grid g4" style={{ gap: 12, gridTemplateColumns: 'repeat(auto-fit,minmax(160px,1fr))' }}>
             {[['실제 사진', '출고 사진 4장 · 기존 흠집 2곳 표시'], ['매입', `${p.bought[grade]} · ${p.source}`], ['최근 세척 · 정비', p.specs.find(([a]) => a === '최근 정비')?.[1] ?? '—'], ['작동 점검', '통과'], ['수리 이력', '없음']].map(([a, b]) => (
               <div key={a} className="stack gap-4" style={{ background: 'var(--surface)', padding: 16 }}><span className="faint" style={{ fontSize: 12 }}>{a}</span><b style={{ fontSize: 14 }}>{b}</b></div>
@@ -220,10 +223,10 @@ export function ProductDetail() {
               ['소모품', '필터', '정기 교체 (요금 포함)', () => '0원'],
               ['과실 파손', '떨어뜨림 · 침수 · 2cm 넘는 흠', '수리 또는 부품 교체', (x) => `수리비 ${x.repairShare}%`],
               ['분실 · 도난', '기기 분실 · 도난', '잔존가치 기준 보상', (x) => `잔존가치 ${x.lossShare}%`],
-              ['고의 훼손', '일부러 부숨', '보장 제외', () => '잔존가치 100%'],
+              ['고의 훼손', '일부러 부숨', '케어 제외', () => '잔존가치 100%'],
             ] as [string, string, string, (x: (typeof PLANS)[number]) => string][]).map((r) => <tr key={r[0]}><td><b>{r[0]}</b></td><td className="muted">{r[1]}</td><td>{r[2]}</td>{PLANS.map((x) => <td key={x.key} style={plan === x.key ? { fontWeight: 700 } : undefined}>{r[3](x)}</td>)}</tr>)}</tbody>
           </table></div>
-          <span className="faint" style={{ fontSize: 12 }}>수리비 %는 실제 수리비 기준이고 잔존가치가 상한이에요. 안심 · 완전 안심 보장은 렌탈 1건당 1회, 2회째부터는 기본과 같아요.</span>
+          <span className="faint" style={{ fontSize: 12 }}>수리비 %는 실제 수리비 기준이고 잔존가치가 상한이에요. 예: 수리비 10만 원 → 베이직 5만 원 · 프리미엄 2만 원.</span>
           <span className="faint" style={{ fontSize: 12 }}>반납 때 AI가 출고 · 반납 사진을 비교해 달라진 부분을 표시하고, 운영자가 작동 테스트와 함께 최종 판정해요. 받은 날 사진에 있던 흠은 책임에서 빠져요.</span>
         </div>
       </section>

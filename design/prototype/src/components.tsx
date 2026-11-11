@@ -174,8 +174,7 @@ export function Header() {
         {open && (
           <div className="mobile-nav" onClick={() => setOpen(false)}>
             {NAV.map((n) => <Link key={n.to} to={n.to}>{n.label}</Link>)}
-            <Link to="/my">내 렌탈</Link>
-            <Link to="/admin">운영자</Link>
+            <Link to="/my">내 렌탈 · 팔기 내역</Link>
           </div>
         )}
       </header>
@@ -184,6 +183,8 @@ export function Header() {
 }
 
 export function Footer() {
+  // 소식 받기: 프로토타입이라 실제로 보내지는 않고 신청된 모습만
+  const [subbed, setSubbed] = useState(false)
   return (
     <footer className="footer">
       <div className="news">
@@ -191,50 +192,60 @@ export function Footer() {
           <span className="eyebrow" style={{ color: 'var(--ink-2)' }}>Neighbors first</span>
           <b style={{ fontSize: 20 }}>새로 들어온 가전과 동네 혜택을 먼저 받아보세요</b>
         </div>
-        <div className="row" style={{ border: '1px solid var(--ink)', background: '#fff', minWidth: 'min(420px,100%)' }}>
-          <input className="input" style={{ border: 0 }} placeholder="휴대폰 번호 또는 이메일" aria-label="소식 받을 연락처" />
-          <button className="btn" style={{ margin: 4 }}>소식 받기</button>
-        </div>
+        {subbed ? <b style={{ color: 'var(--primary)' }}>신청됐어요. 새 가전 · 동네 혜택 소식을 보내드릴게요</b> : (
+          <form className="row" style={{ border: '1px solid var(--ink)', background: '#fff', minWidth: 'min(420px,100%)' }} onSubmit={(e) => { e.preventDefault(); setSubbed(true) }}>
+            <input className="input" style={{ border: 0 }} placeholder="휴대폰 번호 또는 이메일" aria-label="소식 받을 연락처" />
+            <button className="btn" style={{ margin: 4 }}>소식 받기</button>
+          </form>
+        )}
       </div>
       <div className="cols">
         <div className="stack gap-12">
           <Logo light />
           <p style={{ color: '#bfb8b0', fontSize: 14 }}>{BRAND.tagline}.<br />떠날 땐 렌디에 팔고 가는 성북구 살림</p>
-          <b style={{ fontSize: 14 }}>고객센터 1600-0000 · 평일 10~18시</b>
         </div>
         <div><p className="eyebrow" style={{ color: 'var(--ink-3)' }}>Service</p><Link to="/products">빌리기</Link><Link to="/ai">AI 살림 상담</Link><Link to="/sell">팔기</Link><Link to="/guide">가전 가이드</Link></div>
-        <div><p className="eyebrow" style={{ color: 'var(--ink-3)' }}>Support</p><Link to="/">자주 묻는 질문</Link><Link to="/admin">운영자 화면</Link></div>
-        <div><p className="eyebrow" style={{ color: 'var(--ink-3)' }}>Policy</p><Link to="/">이용약관</Link><Link to="/">개인정보처리방침</Link><Link to="/">파손 보장 안내</Link></div>
+        <div><p className="eyebrow" style={{ color: 'var(--ink-3)' }}>My</p><Link to="/my">내 렌탈</Link><Link to="/my">팔기 내역</Link><Link to="/school">학생 혜택</Link><Link to="/try">AI 반납 판정 체험</Link></div>
       </div>
       <div className="wm">{BRAND.en || BRAND.name}</div>
-      <div className="copy"><span>성북구해조 · 성북구 AI 지역문제 해결 해커톤 1차 프로토타입</span><span>© 2026 {BRAND.name}</span></div>
+      <div className="copy"><span>© 2026 {BRAND.name}</span></div>
     </footer>
   )
 }
 
-export function ProductCard({ p }: { p: Product }) {
-  const sold = p.stock === 0
-  return (
-    <Link to={`/products/${p.id}`} className="pcard">
-      <div className="ph" style={{ background: p.bg }}>
-        <span className={`badge ${sold ? 'solid' : 'soft'}`}>{sold ? `품절 · 대기 ${p.waitlist}명` : p.source}</span>
-        <span className="heart" aria-hidden>{Icon.heart}</span>
-        <Illust k={p.illust} />
-      </div>
-      <div className="nm">{p.name}</div>
-      <div className="pr">월 {won(lowest(p))}~</div>
-      <div className="mt">{p.monthly.value ? '2개월부터 · 일반형 / 실속형' : '2개월부터 · 일반형'}</div>
-      <div className="mt">★ {p.rating.toFixed(1)} · 리뷰 {p.reviewCount}</div>
-    </Link>
-  )
+/** 상품 그림: 사진이 있으면 사진(i번째), 없거나 와이어프레임 모드면 일러스트 */
+export function ProductArt({ p, size, i = 0 }: { p: Product; size?: number; i?: number }) {
+  const ph = p.photos?.[i] ?? p.photos?.[0]
+  if (!ph || WIREFRAME) return <Illust k={p.illust} size={size} />
+  return <img className={`ill photo ${ph.fit}`} src={ph.src} alt={p.name} width={size} height={size} loading="lazy" />
 }
 
-export function SectionHead({ en, title, right }: { en: string; title: string; right?: ReactNode }) {
+// 품절이면 눌러지지 않는 카드 (상세로 안 넘어감)
+export function ProductCard({ p }: { p: Product }) {
+  const sold = p.stock === 0
+  const body = (
+    <>
+      <div className="ph" style={{ background: p.bg }}>
+        <span className={`badge ${sold ? 'solid' : 'soft'}`}>{sold ? `품절 · 대기 ${p.waitlist}명` : p.source}</span>
+        {!sold && <span className="heart" aria-hidden>{Icon.heart}</span>}
+        <ProductArt p={p} />
+      </div>
+      <div className="nm">{p.name}</div>
+      <div className="pr">{sold ? '지금은 모두 대여 중' : `월 ${won(lowest(p))}~`}</div>
+      <div className="mt">{p.monthly.value ? '2개월부터 · 일반형 / 실속형' : '2개월부터 · 일반형'}</div>
+      <div className="mt">★ {p.rating.toFixed(1)} · 리뷰 {p.reviewCount}</div>
+    </>
+  )
+  return sold ? <div className="pcard sold" aria-disabled="true">{body}</div> : <Link to={`/products/${p.id}`} className="pcard">{body}</Link>
+}
+
+// oneLine: 좁은 화면에서도 줄바꿈 없이 한 줄 (글자 크기를 화면 폭에 맞춰 줄임)
+export function SectionHead({ en, title, right, oneLine }: { en: string; title: string; right?: ReactNode; oneLine?: boolean }) {
   return (
     <div className="row between gap-16 wrap-row" style={{ alignItems: 'flex-end', marginBottom: 28 }}>
       <div className="stack gap-8">
         <span className="eyebrow">{en}</span>
-        <h2 className="serif" style={{ fontSize: 'clamp(26px, 3.4vw, 36px)' }}>{title}</h2>
+        <h2 className="serif" style={oneLine ? { fontSize: 'clamp(18px, 5.2vw, 36px)', whiteSpace: 'nowrap' } : { fontSize: 'clamp(26px, 3.4vw, 36px)' }}>{title}</h2>
       </div>
       {right}
     </div>
@@ -242,6 +253,9 @@ export function SectionHead({ en, title, right }: { en: string; title: string; r
 }
 
 export function FloatingAI() {
+  // 3D 보기 화면에서는 뷰어 도구 막대를 가려서 숨김
+  const { pathname } = useLocation()
+  if (pathname.endsWith('/3d')) return null
   return <Link to="/ai" className="floating-ai"><i />AI 살림 상담</Link>
 }
 

@@ -91,3 +91,36 @@ html[data-theme="rendy"] .footer .news { background: #f5f8fa; border-radius: 28p
 html[data-theme="rendy"] .footer { padding-top: 0; }
 html[data-theme="rendy"] .footer .cols .eyebrow { background: transparent; color: #9fb0cc !important; padding: 0; }
 html[data-theme="rendy"] .footer .cols a { color: #c9d3e3; }
+
+/* 꾸러미 할인 안내 */
+.bundle-tip { width: min(640px, 100%); background: var(--mint-50, #eaf8f4); border: 1px solid #bfe9de; border-radius: 16px; padding: 20px 22px; }
+.bundle-ex { display: flex; flex-direction: column; gap: 4px; background: #fff; border-radius: 12px; padding: 12px 14px; font-size: 13px; color: var(--ink-2); }
+.bundle-ex s { color: var(--ink-3); }
+.bundle-ex .hl, .bundle-save b { color: #0b7f6a; }
+.bundle-save { display: flex; flex-direction: column; gap: 4px; background: #eaf8f4; border-radius: 12px; padding: 12px 14px; font-size: 13px; color: var(--ink-2); }
+.bundle-save b { font-size: 15px; }
+.bundle-save.soft { background: #fff4ec; }
+.bundle-save.soft b { color: #d4581c; }
+
+/* 교체 후보 · 팔기 내역 */
+.swap-opt { display: flex; gap: 12px; align-items: center; border: 1px solid var(--line); border-radius: 14px; padding: 10px; }
+.swap-opt > div:first-child { width: 72px; height: 72px; border-radius: 10px; overflow: hidden; display: grid; place-items: center; flex-shrink: 0; }
+.sell-row { display: flex; flex-direction: column; gap: 8px; background: var(--surface); border-radius: 14px; padding: 14px 16px; }
+.sell-steps { display: flex; gap: 6px; }
+.sell-steps span { flex: 1; text-align: center; font-size: 12px; padding: 7px 4px; border-radius: 999px; background: #e3e8ee; color: var(--ink-3); }
+.sell-steps span.on { background: #2ec4a6; color: #fff; font-weight: 700; }
+
+/* 체험 화면 3단계 설명 */
+.try-steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.try-steps > div { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 4px; }
+.try-steps i { font-style: normal; width: 24px; height: 24px; border-radius: 50%; background: #2ec4a6; color: #fff; font-size: 13px; font-weight: 800; display: grid; place-items: center; }
+.try-steps span { font-size: 13px; color: var(--ink-2); }
+@media (max-width: 640px) { .try-steps { grid-template-columns: 1fr; } .try-steps > div { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 6px 8px; } .try-steps span { flex-basis: 100%; } }
+
+/* 내 방에 놓아 보기 (3D 방) */
+.room-layout { display: grid; grid-template-columns: minmax(0, 1fr) min(380px, 100%); gap: 20px; align-items: start; }
+.room-stage { position: relative; height: min(70vh, 640px); min-height: 380px; border-radius: 24px; overflow: hidden; background: radial-gradient(80% 70% at 50% 45%, #f6ebe4 0%, #e6d3c8 100%); touch-action: none; }
+.room-stage canvas { display: block; width: 100%; height: 100%; }
+.room-badge { position: absolute; top: 14px; left: 14px; font-size: 12px; background: rgba(20, 33, 61, .75); color: #fff; padding: 6px 12px; border-radius: 999px; }
+.room-tools { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); display: flex; gap: 8px; align-items: center; background: #fff; border-radius: 999px; padding: 6px 8px 6px 16px; box-shadow: 0 8px 24px rgba(20, 33, 61, .15); white-space: nowrap; }
+@media (max-width: 900px) { .room-layout { grid-template-columns: 1fr; } .room-stage { height: auto; min-height: 0; aspect-ratio: 1 / 1.05; } }

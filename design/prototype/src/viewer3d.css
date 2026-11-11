@@ -1,0 +1,82 @@
+/* 2-3a 3D로 보기 (Figma node 140:905) — 렌디 테마 토큰 사용 */
+.v3d-crumb { font-size: 13px; margin: 0 0 18px; }
+.v3d-back { display: inline-block; font-size: 15px; font-weight: 700; color: var(--ink); margin-bottom: 20px; }
+.v3d-row { display: grid; grid-template-columns: minmax(0, 744fr) minmax(0, 460fr); gap: 40px; align-items: start; }
+
+/* 뷰어 */
+.v3d-stage { position: relative; height: 780px; background: var(--sky); border-radius: 20px; overflow: hidden; }
+.v3d-mv { position: absolute; inset: 0; width: 100%; height: 100%; background: transparent; --poster-color: transparent; }
+.v3d-orbit { position: absolute; left: 50%; bottom: 23%; width: 67%; height: 96px; transform: translateX(-50%); border: 2px dashed var(--mint-500); border-radius: 50%; opacity: .8; pointer-events: none; }
+.v3d-loading { position: absolute; inset: 0; display: grid; place-items: center; color: var(--ink-2); font-size: 14px; pointer-events: none; }
+
+.v3d-chip { display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--line); background: #fff; color: var(--navy-900); font-size: 13px; font-weight: 700; line-height: 1.25; white-space: nowrap; }
+.v3d-chip.dark { background: var(--navy-900); border-color: var(--navy-900); color: #fff; }
+.v3d-chip.mint { background: var(--mint-50); border-color: var(--mint-50); color: var(--mint-700); }
+.v3d-tl { position: absolute; top: 20px; left: 20px; }
+.v3d-views { position: absolute; top: 20px; right: 20px; display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.v3d-chip.btn-like { padding: 7px 14px; font-size: 14px; cursor: pointer; }
+.v3d-chip.btn-like.on { background: var(--navy-900); border-color: var(--navy-900); color: #fff; }
+
+.v3d-hint { position: absolute; left: 0; right: 0; bottom: 96px; margin: 0; text-align: center; font-size: 14px; color: var(--ink-2); pointer-events: none; padding-inline: 16px; }
+.v3d-tools { position: absolute; left: 50%; bottom: 28px; transform: translateX(-50%); display: flex; gap: 6px; padding: 8px; background: #fff; border-radius: 999px; box-shadow: 0 6px 20px rgba(20, 33, 61, .14); max-width: calc(100% - 24px); overflow-x: auto; }
+.v3d-tools button { border: 0; background: #fff; color: var(--navy-900); font-weight: 700; font-size: 14px; padding: 9px 14px; border-radius: 999px; white-space: nowrap; }
+.v3d-tools button:hover { background: var(--surface); }
+.v3d-tools button.on { background: var(--mint-50); color: var(--mint-700); }
+
+/* 흠집 핀 · 말풍선 */
+.v3d-pin { position: relative; width: 36px; height: 36px; border-radius: 999px; background: var(--primary); border: 3px solid #fff; color: #fff; font-size: 15px; font-weight: 900; box-shadow: 0 6px 20px rgba(20, 33, 61, .14); display: grid; place-items: center; padding: 0; transition: opacity .2s; }
+.v3d-pin:not([data-visible]) { opacity: .3; }
+.v3d-pin.on { outline: 3px solid rgba(255, 122, 47, .3); opacity: 1; z-index: 2; }
+.v3d-bubble { position: absolute; left: calc(100% + 12px); top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 4px; align-items: flex-start; text-align: left; background: #fff; border-radius: 12px; padding: 12px 14px; box-shadow: 0 6px 20px rgba(20, 33, 61, .14); white-space: nowrap; cursor: default; }
+.v3d-bubble b { font-size: 15px; color: var(--navy-900); }
+.v3d-bubble em { font-style: normal; font-size: 13px; font-weight: 500; color: var(--mint-700); }
+.v3d-bubble-link { font-size: 13px; font-weight: 700; color: var(--ink-2); cursor: pointer; }
+.v3d-dimdot { width: 1px; height: 1px; pointer-events: none; }
+
+/* 치수선 */
+.v3d-dims { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+.v3d-dims line { stroke: var(--mint-700); stroke-width: 2; }
+.v3d-dimtext { position: absolute; font-size: 14px; font-weight: 700; color: var(--mint-700); white-space: nowrap; pointer-events: none; line-height: 1.25; }
+.v3d-dimtext.right { text-align: right; }
+
+/* 정보 */
+.v3d-info { display: flex; flex-direction: column; gap: 16px; }
+.v3d-name { margin: 0; font-size: 36px; font-weight: 900; letter-spacing: -0.04em; color: var(--navy-900); line-height: 1.2; }
+.v3d-sub { margin: 0; font-size: 17px; color: var(--ink-2); }
+.v3d-price { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.v3d-price b { font-size: 32px; font-weight: 900; letter-spacing: -0.03em; color: var(--navy-900); }
+.v3d-price span { font-size: 16px; font-weight: 500; color: var(--ink-2); }
+.v3d-hr { border: 0; border-top: 1px solid var(--line); margin: 0; width: 100%; }
+.v3d-h { font-size: 17px; color: var(--navy-900); }
+.v3d-devices { display: flex; gap: 8px; }
+.v3d-device { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 14px 16px; border-radius: 14px; border: 1px solid var(--line); background: #fff; }
+.v3d-device b { font-size: 16px; color: var(--navy-900); }
+.v3d-device small { font-size: 13px; color: var(--ink-2); }
+.v3d-device.on { background: var(--mint-50); border: 2px solid var(--mint-500); padding: 13px 15px; }
+.v3d-card { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; text-align: left; width: 100%; padding: 14px 16px; border-radius: 18px; border: 1px solid var(--line); background: #fff; }
+.v3d-card b { font-size: 16px; color: var(--navy-900); }
+.v3d-card small { font-size: 14px; color: var(--ink-2); }
+.v3d-card small.mint { color: var(--mint-700); }
+.v3d-card.on { background: var(--peach); border: 1.5px solid var(--primary); padding: 13.5px 15.5px; }
+.v3d-card.static { cursor: default; }
+.v3d-note { margin: 0; font-size: 14px; color: var(--ink-2); }
+.v3d-btns { display: flex; flex-direction: column; gap: 8px; padding-top: 8px; }
+.v3d-btn { width: 100%; padding: 16px 28px; border-radius: 14px; border: 1px solid var(--navy-900); background: var(--navy-900); color: #fff; font-size: 17px; font-weight: 700; }
+.v3d-btn.line { background: #fff; color: var(--navy-900); border-color: var(--line); }
+.v3d-btn:disabled { opacity: .5; cursor: not-allowed; }
+.v3d-photo { display: grid; place-items: center; border-radius: 14px; aspect-ratio: 1 / .8; overflow: hidden; }
+
+/* 상세 화면의 '3D 돌려보기' 버튼 (140:1480) */
+.v3d-open { position: absolute; right: 14px; bottom: 14px; z-index: 2; display: inline-flex; align-items: center; gap: 8px; padding: 9px 16px 9px 10px; border-radius: 999px; background: #fff; border: 1.5px solid var(--mint-500); box-shadow: 0 6px 20px rgba(20, 33, 61, .14); color: var(--mint-700); font-size: 15px; font-weight: 700; }
+.v3d-open i { font-style: normal; background: var(--mint-500); color: #fff; font-size: 12px; font-weight: 900; padding: 2px 6px; border-radius: 6px; }
+
+@media (max-width: 960px) {
+  .v3d-row { grid-template-columns: 1fr; }
+  .v3d-stage { height: 560px; }
+  .v3d-views { top: 56px; left: 20px; right: auto; justify-content: flex-start; }
+  .v3d-hint { display: none; }
+  .v3d-orbit { bottom: 26%; }
+  .v3d-tools { bottom: 12px; flex-wrap: wrap; justify-content: center; border-radius: 22px; width: calc(100% - 24px); padding: 6px; gap: 2px; }
+  .v3d-tools button { padding: 8px 11px; font-size: 13px; }
+  .v3d-name { font-size: 30px; }
+}

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { deliveryFee, gradeFor, lowest, productById, won } from '../data'
-import { Illust } from '../components'
+import { bundleSaving, deliveryFee, gradeFor, lowest, productById, won } from '../data'
+import { Illust, ProductArt } from '../components'
 import { useStore } from '../store'
 
 type Msg = { from: 'ai' | 'me'; text: string }
@@ -70,6 +70,7 @@ export default function Ai() {
   const chosen = items.filter((id) => checked[id])
   const sum = chosen.reduce((a, id) => a + lowest(productById(id)!), 0)
   const buy = chosen.reduce((a, id) => a + productById(id)!.newPrice, 0)
+  const bundle = bundleSaving(chosen.map((id) => lowest(productById(id)!)))
   const chips = step < 3 ? STEPS[step].chips : ['기간 바꾸기', '예산 3만 원 이하로', '다른 걸로 추천']
 
   return (
@@ -105,7 +106,7 @@ export default function Ai() {
               {items.map((id) => { const p = productById(id)!; const sold = p.stock === 0; return (
                 <label key={id} className="row gap-12" style={{ cursor: sold ? 'default' : 'pointer', opacity: checked[id] ? 1 : .5 }}>
                   <input type="checkbox" checked={!!checked[id]} disabled={sold} onChange={(e) => setChecked({ ...checked, [id]: e.target.checked })} />
-                  <div style={{ background: p.bg, width: 56, height: 56, display: 'grid', placeItems: 'center' }}><Illust k={p.illust} size={42} /></div>
+                  <div style={{ background: p.bg, width: 56, height: 56, display: 'grid', placeItems: 'center' }}><ProductArt p={p} size={42} /></div>
                   <div className="stack" style={{ flex: 1 }}><b>{p.name}</b><span className="faint" style={{ fontSize: 12 }}>이유: {p.reasons[0][0]}</span><span className="faint" style={{ fontSize: 12 }}>{p.monthly.value != null ? `실속형 · ${p.bought.value} 매입` : `일반형 · ${p.bought.standard} 매입`} · 세척·점검 기록 있음</span></div>
                   {sold ? <button className="btn sm line" disabled={waitlist.includes(id)} onClick={(e) => { e.preventDefault(); if (!user) return nav('/login?next=/ai'); joinWaitlist(id) }}>{waitlist.includes(id) ? '대기 등록됨' : '품절 · 대기 신청'}</button> : <b>월 {won(lowest(p))}</b>}
                 </label>
@@ -115,7 +116,9 @@ export default function Ai() {
               <div className="kv"><span>{months}개월 대여료</span><b>{won(sum * months)}</b></div>
               <div className="kv"><span>배송 · 회수</span><b>{chosen.length ? (deliveryFee(sum) ? won(deliveryFee(sum)) : '0원 (월 3만원 이상)') : '—'}</b></div>
               <div className="kv" style={{ alignItems: 'baseline' }}><span>총비용</span><b className="serif" style={{ fontSize: 26 }}>{won(sum * months + (chosen.length ? deliveryFee(sum) : 0))}</b></div>
-              {sum >= 30000 && <span style={{ color: 'var(--primary)', fontSize: 13, fontWeight: 600 }}>월 3만원 이상 · 배송·회수 무료</span>}
+              {bundle.saved > 0 && (
+                <div className="bundle-save"><b>꾸러미로 빌리면 {won(bundle.saved)} 더 싸요</b><span>따로 빌리면 배송·회수 {won(bundle.apart)} → 꾸러미로 {won(bundle.together)} (월 3만원 이상 무료)</span></div>
+              )}
               <button className="btn block" disabled={!chosen.length} onClick={() => { chosen.forEach((id) => addToCart({ productId: id, mode: 'long', grade: gradeFor(productById(id)!, 'value'), months, weeks: 1, plan: 'full' })); nav(user ? '/checkout' : '/login?next=/checkout') }}>꾸러미 한 번에 빌리기</button>
             </>
           )}
