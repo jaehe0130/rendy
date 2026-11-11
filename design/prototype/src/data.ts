@@ -38,7 +38,7 @@ export interface ScanMark { title: string; note: string; charge: string; at: [nu
 export interface Model3D {
   src: { standard: string; value?: string } // 대표 기기별 스캔 (실속형 없으면 일반형만)
   scanned: string // 실물 스캔 날짜
-  size?: { w: number; d: number; h: number } // cm · 있으면 치수선 표시
+  size?: { w: number; d: number; h: number; approx?: boolean } // cm · 있으면 치수선 표시 · approx = 실측 전 대표 모델 기준 대략값 (화면에 '약')
   marks: { standard: ScanMark[]; value?: ScanMark[] } // 대표 기기별 기존 흠집 (모델에 핀)
 }
 
@@ -96,7 +96,7 @@ export const PRODUCTS: Product[] = [
     category: 'seasonal',
     illust: 'dehumidifier',
     photos: [{ src: '/products/dehumidifier-16-1.webp', fit: 'scene' }, { src: '/products/dehumidifier-16-2.webp', fit: 'scene' }, { src: '/products/dehumidifier-16-3.webp', fit: 'scene' }],
-    model3d: { src: { standard: '/models/dehumidifier-20l-1.glb', value: '/models/dehumidifier-20l-2.glb' }, scanned: '2026.10.28', marks: { standard: [{ title: '윗면 손잡이 사용감', note: '기능 이상 없음 · 세척 완료', charge: '', at: [0, 1, 0.2], view: 'top' }], value: [{ title: '앞면 아래 긁힘 1.5cm', note: '생활 마모', charge: '반납 때 0원', at: [0.4, -0.6, 1], view: 'front' }, { title: '오른쪽 옆면 생활 흠집', note: '생활 마모', charge: '반납 때 0원', at: [1, 0.1, 0], view: 'side' }, { title: '윗면 손잡이 사용감', note: '기능 이상 없음 · 세척 완료', charge: '', at: [0, 1, 0.2], view: 'top' }] } },
+    model3d: { src: { standard: '/models/dehumidifier-20l-1.glb', value: '/models/dehumidifier-20l-2.glb' }, scanned: '2026.10.28', size: { w: 34, d: 26, h: 58, approx: true }, marks: { standard: [{ title: '윗면 손잡이 사용감', note: '기능 이상 없음 · 세척 완료', charge: '', at: [0, 1, 0.2], view: 'top' }], value: [{ title: '앞면 아래 긁힘 1.5cm', note: '생활 마모', charge: '반납 때 0원', at: [0.4, -0.6, 1], view: 'front' }, { title: '오른쪽 옆면 생활 흠집', note: '생활 마모', charge: '반납 때 0원', at: [1, 0.1, 0], view: 'side' }, { title: '윗면 손잡이 사용감', note: '기능 이상 없음 · 세척 완료', charge: '', at: [0, 1, 0.2], view: 'top' }] } },
     bg: 'var(--sky)',
     newPrice: 459000,
     monthly: { standard: 19000, value: 14000 },
@@ -119,7 +119,7 @@ export const PRODUCTS: Product[] = [
     category: 'laundry',
     illust: 'dryer',
     photos: [{ src: '/products/mini-dryer-1.webp', fit: 'scene' }, { src: '/products/mini-dryer-2.webp', fit: 'scene' }, { src: '/products/mini-dryer-3.webp', fit: 'scene' }],
-    model3d: { src: { standard: '/models/mini-dryer-1.glb', value: '/models/mini-dryer-2.glb' }, scanned: '2026.10.30', marks: { standard: [{ title: '문 테두리 사용감', note: '기능 이상 없음 · 세척 완료', charge: '', at: [0.5, 0.1, 1], view: 'front' }], value: [{ title: '문 테두리 사용감', note: '기능 이상 없음 · 세척 완료', charge: '', at: [0.5, 0.1, 1], view: 'front' }, { title: '윗면 긁힘 1.0cm', note: '생활 마모', charge: '반납 때 0원', at: [0.3, 1, 0], view: 'top' }, { title: '오른쪽 옆면 찍힘 0.5cm', note: '생활 마모', charge: '반납 때 0원', at: [1, -0.3, 0.2], view: 'side' }] } },
+    model3d: { src: { standard: '/models/mini-dryer-1.glb', value: '/models/mini-dryer-2.glb' }, scanned: '2026.10.30', size: { w: 45, d: 30, h: 50, approx: true }, marks: { standard: [{ title: '문 테두리 사용감', note: '기능 이상 없음 · 세척 완료', charge: '', at: [0.5, 0.1, 1], view: 'front' }], value: [{ title: '문 테두리 사용감', note: '기능 이상 없음 · 세척 완료', charge: '', at: [0.5, 0.1, 1], view: 'front' }, { title: '윗면 긁힘 1.0cm', note: '생활 마모', charge: '반납 때 0원', at: [0.3, 1, 0], view: 'top' }, { title: '오른쪽 옆면 찍힘 0.5cm', note: '생활 마모', charge: '반납 때 0원', at: [1, -0.3, 0.2], view: 'side' }] } },
     bg: 'var(--peach)',
     newPrice: 499000,
     monthly: { standard: 20000, value: 15000 },
@@ -142,7 +142,7 @@ export const PRODUCTS: Product[] = [
     category: 'air',
     illust: 'humidifier',
     photos: [{ src: '/products/humidifier-1.webp', fit: 'scene' }, { src: '/products/humidifier-2.webp', fit: 'scene' }, { src: '/products/humidifier-3.webp', fit: 'scene' }],
-    model3d: { src: { standard: '/models/humidifier-1.glb' }, scanned: '2026.10.25', marks: { standard: [{ title: '물통 뚜껑 사용감', note: '기능 이상 없음 · 세척 완료', charge: '', at: [0, 1, 0], view: 'top' }, { title: '손잡이 긁힘 0.8cm', note: '생활 마모', charge: '반납 때 0원', at: [1, 0.5, 0], view: 'side' }] } },
+    model3d: { src: { standard: '/models/humidifier-1.glb' }, scanned: '2026.10.25', size: { w: 22, d: 22, h: 32, approx: true }, marks: { standard: [{ title: '물통 뚜껑 사용감', note: '기능 이상 없음 · 세척 완료', charge: '', at: [0, 1, 0], view: 'top' }, { title: '손잡이 긁힘 0.8cm', note: '생활 마모', charge: '반납 때 0원', at: [1, 0.5, 0], view: 'side' }] } },
     bg: 'var(--mint)',
     newPrice: 305000,
     monthly: { standard: 15000, value: null },
@@ -165,7 +165,7 @@ export const PRODUCTS: Product[] = [
     category: 'kitchen',
     illust: 'foodwaste',
     photos: [{ src: '/products/foodwaste-1.webp', fit: 'scene' }, { src: '/products/foodwaste-2.webp', fit: 'scene' }, { src: '/products/foodwaste-3.webp', fit: 'scene' }],
-    model3d: { src: { standard: '/models/foodwaste-1.glb' }, scanned: '2026.10.25', marks: { standard: [{ title: '뚜껑 경첩 사용감', note: '기능 이상 없음 · 세척 완료', charge: '', at: [0, 1, -0.6], view: 'top' }, { title: '앞면 긁힘 0.6cm', note: '생활 마모', charge: '반납 때 0원', at: [-0.3, 0.2, 1], view: 'front' }] } },
+    model3d: { src: { standard: '/models/foodwaste-1.glb' }, scanned: '2026.10.25', size: { w: 27, d: 29, h: 38, approx: true }, marks: { standard: [{ title: '뚜껑 경첩 사용감', note: '기능 이상 없음 · 세척 완료', charge: '', at: [0, 1, -0.6], view: 'top' }, { title: '앞면 긁힘 0.6cm', note: '생활 마모', charge: '반납 때 0원', at: [-0.3, 0.2, 1], view: 'front' }] } },
     bg: 'var(--butter)',
     newPrice: 329000,
     monthly: { standard: 15000, value: null },

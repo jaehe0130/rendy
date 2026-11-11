@@ -25,14 +25,8 @@ function fitDistance(cam: THREE.PerspectiveCamera, W: number, D: number) {
   return (r / Math.sin(Math.min(v, h))) * 0.98
 }
 
-// 가전 실제 크기 (가로 · 깊이 · 높이 cm). 제습기 10L은 실측(data.ts), 나머지는 대표 모델 기준 대략값
-const SIZE: Record<string, [number, number, number]> = {
-  'dehumidifier-10': [30, 20, 48],
-  'dehumidifier-16': [34, 26, 58],
-  'mini-dryer': [45, 30, 50],
-  humidifier: [22, 22, 32],
-  foodwaste: [27, 29, 38],
-}
+// 가전 크기 (가로 · 깊이 · 높이 cm) = data.ts model3d.size (제습기 10L만 실측, 나머지는 대략값)
+const SIZE: Record<string, [number, number, number]> = Object.fromEntries(PRODUCTS.filter((p) => p.model3d?.size).map((p) => { const s = p.model3d!.size!; return [p.id, [s.w, s.d, s.h]] }))
 // 처음 놓는 자리 (방 크기에 대한 비율이 아니라 m, 가구와 안 겹치게)
 const SPOTS = (W: number, D: number): [number, number][] => [[0.35, 0.3], [W - 0.45, D - 0.55], [1.55, 0.35], [W - 0.4, 1.5], [1.7, D - 0.5]]
 

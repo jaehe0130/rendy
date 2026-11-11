@@ -220,8 +220,8 @@ export default function Viewer3D() {
           )}
           {m3.size && dims && (
             <>
-              <span className="v3d-dimtext" style={{ left: (dims.w[0] + dims.w[2]) / 2, top: Math.min(dims.w[1], dims.w[3]) - 26, transform: 'translateX(-50%)' }}>가로 {m3.size.w}cm · 깊이 {m3.size.d}cm</span>
-              <span className="v3d-dimtext right" style={{ left: dims.h[0] - 10, top: (dims.h[1] + dims.h[3]) / 2, transform: 'translate(-100%,-50%)' }}>높이<br />{m3.size.h}cm</span>
+              <span className="v3d-dimtext" style={{ left: (dims.w[0] + dims.w[2]) / 2, top: Math.min(dims.w[1], dims.w[3]) - 26, transform: 'translateX(-50%)' }}>{m3.size.approx ? '약 ' : ''}가로 {m3.size.w}cm · 깊이 {m3.size.d}cm</span>
+              <span className="v3d-dimtext right" style={{ left: dims.h[0] - 10, top: (dims.h[1] + dims.h[3]) / 2, transform: 'translate(-100%,-50%)' }}>높이<br />{m3.size.approx ? '약 ' : ''}{m3.size.h}cm</span>
             </>
           )}
           {!box && <span className="v3d-loading">3D 모델 불러오는 중…</span>}
@@ -270,7 +270,7 @@ export default function Viewer3D() {
           {m3.size && (
             <div className="v3d-card static">
               <b>실제 크기</b>
-              <small>가로 {m3.size.w} · 깊이 {m3.size.d} · 높이 {m3.size.h}cm{room ? ` · ${room}` : ''}</small>
+              <small>{m3.size.approx ? '약 ' : ''}가로 {m3.size.w} · 깊이 {m3.size.d} · 높이 {m3.size.h}cm{room ? ` · ${room}` : ''}</small>
             </div>
           )}
           <p className="v3d-note">반납할 때 AI가 출고 사진과 반납 사진을 비교해 새로 생긴 흠집만 찾아요. 여기 있는 기존 흠집은 책임에서 빠져요.</p>
