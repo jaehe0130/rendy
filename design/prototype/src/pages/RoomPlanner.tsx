@@ -17,6 +17,14 @@ const ROOMS = [
 type RoomKey = (typeof ROOMS)[number]['key']
 const WALL_H = 2.3
 
+// 방 전체(바닥 · 벽)가 화면에 들어오는 카메라 거리: 방을 감싸는 구의 반지름 ÷ sin(좁은 쪽 시야각의 절반)
+function fitDistance(cam: THREE.PerspectiveCamera, W: number, D: number) {
+  const r = Math.sqrt(W * W + D * D + WALL_H * WALL_H) / 2
+  const v = THREE.MathUtils.degToRad(cam.fov) / 2
+  const h = Math.atan(Math.tan(v) * cam.aspect)
+  return (r / Math.sin(Math.min(v, h))) * 0.98
+}
+
 // 가전 실제 크기 (가로 · 깊이 · 높이 cm). 제습기 10L은 실측(data.ts), 나머지는 대표 모델 기준 대략값
 const SIZE: Record<string, [number, number, number]> = {
   'dehumidifier-10': [30, 20, 48],
@@ -134,13 +142,18 @@ export default function RoomPlanner() {
     // 벽 두 개가 늘 뒤에 오게 각도 제한
     controls.minAzimuthAngle = 0.05; controls.maxAzimuthAngle = Math.PI / 2 - 0.05
     controls.minPolarAngle = 0.35; controls.maxPolarAngle = 1.25
-    controls.minDistance = 4; controls.maxDistance = 14
+    controls.minDistance = 3; controls.maxDistance = 22
     const ring = new THREE.Mesh(new THREE.RingGeometry(0.28, 0.33, 48), new THREE.MeshBasicMaterial({ color: '#2ec4a6', transparent: true, opacity: 0.9 }))
     ring.rotation.x = -Math.PI / 2; ring.visible = false; scene.add(ring)
     const loader = new GLTFLoader()
     T.current = { scene, camera, controls, roomG: null, items: new Map(), ring, W: 3, D: 3, loader, cache: new Map() }
 
-    const resize = () => { const w = el.clientWidth, h = el.clientHeight; renderer.setSize(w, h); camera.aspect = w / h; camera.updateProjectionMatrix() }
+    const resize = () => {
+      const w = el.clientWidth, h = el.clientHeight; renderer.setSize(w, h); camera.aspect = w / h; camera.updateProjectionMatrix()
+      // 화면 비율이 바뀌면(휴대폰 · 창 크기) 보는 방향은 그대로 두고 방이 다 들어오게 거리만 다시
+      const t = T.current
+      if (t?.roomG) { const dir = camera.position.clone().sub(controls.target).normalize(); camera.position.copy(controls.target).addScaledVector(dir, fitDistance(camera, t.W, t.D)); controls.update() }
+    }
     resize()
     const ro = new ResizeObserver(resize); ro.observe(el)
 
@@ -207,8 +220,8 @@ export default function RoomPlanner() {
     t.roomG = buildRoom(R.w, R.d); t.W = R.w; t.D = R.d; t.scene.add(t.roomG)
     const c = new THREE.Vector3(R.w / 2, 0.7, R.d / 2)
     t.controls.target.copy(c)
-    const dist = Math.max(R.w, R.d) * 2.2
-    t.camera.position.set(c.x + dist * 0.72, c.y + dist * 0.62, c.z + dist * 0.72)
+    const dist = fitDistance(t.camera, R.w, R.d)
+    t.camera.position.copy(c).add(new THREE.Vector3(0.72, 0.62, 0.72).normalize().multiplyScalar(dist))
     t.controls.update()
     const spots = SPOTS(R.w, R.d)
     ;[...t.items.values()].forEach((it, i) => { const [x, z] = spots[i % spots.length]; it.obj.position.set(Math.min(R.w - it.hw, Math.max(it.hw, x)), 0, Math.min(R.d - it.hd, Math.max(it.hd, z))) })
