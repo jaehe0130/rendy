@@ -129,7 +129,7 @@ export default function HomeRendy() {
       <section className="rd-hero">
         <span className="rd-eyebrow">성북구 1인 가구 생활가전 렌탈</span>
         <h1 className="rd-h1">내 방에 맞는 가전,<br />사지 말고 렌디로</h1>
-        <p className="rd-sub">원룸 크기와 고민에 맞는 가전만 골라 2개월부터 빌려요. 세척·점검 끝난 기기를 보증금 없이, 주 2회 문 앞까지.</p>
+        <p className="rd-sub">원룸 크기와 고민에 맞는 가전만 골라 2개월부터 빌려요.<br className="hide-sm" /> 세척·점검 끝난 기기를 보증금 없이, 주 2회 문 앞까지.</p>
         <div className="rd-deals">
           <span><b>첫 달 50%</b>학교 인증 회원</span>
           <span><b>배송비 0원</b>꾸러미 월 3만원 이상</span>

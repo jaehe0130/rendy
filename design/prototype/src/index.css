@@ -21,6 +21,9 @@
 * { box-sizing: border-box; }
 html, body { margin: 0; }
 body { font-family: var(--sans); color: var(--ink); background: var(--white); font-size: 15px; line-height: 1.6; -webkit-font-smoothing: antialiased; }
+/* 한글은 단어(띄어쓰기) 단위로 줄바꿈 ('없/이'처럼 단어 중간에서 안 끊기게), 긴 주소 같은 건 넘치면 끊음 */
+body { word-break: keep-all; overflow-wrap: break-word; }
+h1, h2, .rd-sub { text-wrap: balance; }
 a { color: inherit; text-decoration: none; }
 button { font: inherit; cursor: pointer; }
 img { max-width: 100%; }
